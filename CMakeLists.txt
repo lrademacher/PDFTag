@@ -15,8 +15,10 @@ LINK_DIRECTORIES(${GTK3_LIBRARY_DIRS})
 # Add other flags to the compiler
 ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
 
-# Add an executable compiled from hello.c
-ADD_EXECUTABLE(PdfTag main.cc)
+# Add an executable compiled from sources in src directory
+file(GLOB_RECURSE SOURCES "src/*.cc")
+
+add_executable(PdfTag ${SOURCES})
 
 # Link the target to the GTK+ libraries
 TARGET_LINK_LIBRARIES(PdfTag ${GTK3_LIBRARIES})
