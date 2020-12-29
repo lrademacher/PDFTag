@@ -18,6 +18,8 @@ ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
 # Add an executable compiled from sources in src directory
 file(GLOB_RECURSE SOURCES "src/*.cc")
 
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/res/PdfTag_GtkGui.glade ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+
 add_executable(PdfTag ${SOURCES})
 
 # Link the target to the GTK+ libraries
