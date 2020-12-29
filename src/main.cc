@@ -1,49 +1,45 @@
 #include <gtk/gtk.h>
 
-GtkBuilder *builder;
 GtkWidget *window;
+
+#define UI_FILE "PdfTag_GtkGui.glade"
+#define GTK_CALLBACK extern "C" G_MODULE_EXPORT
 
 int
 main(int argc, char **argv) {
+    GError *error = NULL;
+
+    /* Init GTK+ */
     gtk_init(&argc, &argv);
 
     // build GUI from glade file
-    builder = gtk_builder_new_from_file("PdfTag_GtkGui.glade");    
+    GtkBuilder *builder = gtk_builder_new();
+    if( ! gtk_builder_add_from_file( builder, UI_FILE, &error ) )
+    {
+        g_warning( "%s", error->message );
+        g_free( error );
+        return( 1 );
+    }
 
     window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
 
     g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+
+    gtk_builder_connect_signals(builder, NULL);
+
+    /* Destroy builder, since we don't need it anymore */
+    g_object_unref( G_OBJECT( builder ) );
 
     gtk_widget_show(window);
 
     gtk_main();
 
     return EXIT_SUCCESS;
-
-    /*app = gtk_application_new("org.gtk.example",
-        G_APPLICATION_FLAGS_NONE);
-    g_signal_connect(app, "activate",
-        G_CALLBACK(activate), NULL);
-    status = g_application_run(G_APPLICATION(app), argc, argv);
-    g_object_unref(app);
-    return (status);*/
 }
 
-static void
-activate(GtkApplication *app,
-    gpointer user_data) {
-    GtkWidget *window;
-
-    window = gtk_application_window_new(app);
-    gtk_window_set_title(GTK_WINDOW(window), "Hello GNOME");
-    gtk_widget_show_all(window);
-}
-
-static void
-on_FileMenu_activate(GtkMenuItem *menuItem)
+GTK_CALLBACK void
+on_FileQuit_activate(GtkMenuItem *m)
 {
-    if(gtk_menu_item_get_label(menuItem) == "Quit")
-    {
-        gtk_main_quit();
-    }
+    (void)m;
+    gtk_main_quit();
 }

@@ -15,12 +15,18 @@ LINK_DIRECTORIES(${GTK3_LIBRARY_DIRS})
 # Add other flags to the compiler
 ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
 
+SET(BIN_NAME PdfTag)
+
 # Add an executable compiled from sources in src directory
 file(GLOB_RECURSE SOURCES "src/*.cc")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/res/PdfTag_GtkGui.glade ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
-add_executable(PdfTag ${SOURCES})
+add_executable(${BIN_NAME} ${SOURCES})
+
+target_compile_options(${BIN_NAME} PRIVATE -Wall -Wextra -pedantic)
+
+# set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Link the target to the GTK+ libraries
-TARGET_LINK_LIBRARIES(PdfTag ${GTK3_LIBRARIES})
+TARGET_LINK_LIBRARIES(${BIN_NAME} ${GTK3_LIBRARIES})
