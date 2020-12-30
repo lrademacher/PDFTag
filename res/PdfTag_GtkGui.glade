@@ -58,6 +58,22 @@
       </object>
     </child>
   </object>
+  <object class="GtkTreeStore" id="file_treestore">
+    <columns>
+      <!-- column-name file_name -->
+      <column type="gchararray"/>
+      <!-- column-name file_date -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkTreeStore" id="tags_treestore">
+    <columns>
+      <!-- column-name tag_name -->
+      <column type="gchararray"/>
+      <!-- column-name tag_activated -->
+      <column type="gboolean"/>
+    </columns>
+  </object>
   <object class="GtkWindow" id="window">
     <property name="width_request">537</property>
     <property name="height_request">300</property>
@@ -164,10 +180,103 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <placeholder/>
+              <object class="GtkViewport">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkTreeView" id="TagsTable">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="model">tags_treestore</property>
+                    <property name="search_column">0</property>
+                    <property name="show_expanders">False</property>
+                    <child internal-child="selection">
+                      <object class="GtkTreeSelection"/>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="tt_col_selected">
+                        <property name="title" translatable="yes">Select</property>
+                        <child>
+                          <object class="GtkCellRendererToggle" id="tt_row_select"/>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="tt_col_tag">
+                        <property name="title" translatable="yes">Tag</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="tt_col_tag1"/>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkViewport">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkTreeView" id="FileTable">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="model">file_treestore</property>
+                    <property name="reorderable">True</property>
+                    <property name="search_column">0</property>
+                    <property name="show_expanders">False</property>
+                    <property name="enable_grid_lines">both</property>
+                    <child internal-child="selection">
+                      <object class="GtkTreeSelection">
+                        <signal name="changed" handler="on_file_selection_changed" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="ft_col_file">
+                        <property name="title" translatable="yes">File</property>
+                        <property name="clickable">True</property>
+                        <property name="sort_indicator">True</property>
+                        <property name="sort_column_id">0</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="ft_row_file"/>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="ft_col_date">
+                        <property name="title" translatable="yes">Date</property>
+                        <property name="clickable">True</property>
+                        <property name="sort_indicator">True</property>
+                        <property name="sort_column_id">1</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="ft_row_date"/>
+                        </child>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
             </child>
           </object>
           <packing>
