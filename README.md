@@ -1,2 +1,2 @@
-# PdfTag
-Pdf tag (keyword) management desktop application
+# PDFTag
+PDF tag (keyword) management desktop application
