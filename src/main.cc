@@ -17,6 +17,7 @@
 struct {
     GtkWidget *window;
     GtkWidget *file_chooser;
+    GtkWidget *about_dialog;
 } data;
 
 int
@@ -38,6 +39,7 @@ main(int argc, char **argv) {
     // get widgets from builder
     GET_WIDGET(window);
     GET_WIDGET(file_chooser);
+    GET_WIDGET(about_dialog);
 
     g_signal_connect(data.window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
@@ -71,6 +73,27 @@ on_FileQuit_activate(GtkMenuItem *m)
     LOG(LOG_INFO, "on_FileQuit_activate\n");
 
     gtk_main_quit();
+}
+
+GTK_CALLBACK void
+on_HelpAbout_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_HelpAbout_activate\n");
+
+    gtk_widget_show(data.about_dialog);
+}
+
+GTK_CALLBACK void
+on_about_dialog_response(GtkDialog *dialog, gint response_id)
+{
+    (void)dialog;
+    (void)response_id;
+
+    LOG(LOG_INFO, "on_about_dialog_response\n");
+
+    gtk_widget_hide(data.about_dialog);
 }
 
 GTK_CALLBACK void
