@@ -242,6 +242,8 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="tags_selected_column">
+                        <property name="sizing">autosize</property>
+                        <property name="fixed_width">69</property>
                         <property name="title" translatable="yes">Selected</property>
                         <child>
                           <object class="GtkCellRendererToggle" id="tags_selected_renderer"/>
@@ -250,6 +252,8 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="tags_tag_column">
+                        <property name="sizing">autosize</property>
+                        <property name="fixed_width">91</property>
                         <property name="title" translatable="yes">Tag</property>
                         <child>
                           <object class="GtkCellRendererText" id="tags_tag_renderer"/>
@@ -301,7 +305,7 @@
                     <child>
                       <object class="GtkTreeViewColumn" id="file_dir_column">
                         <property name="resizable">True</property>
-                        <property name="sizing">autosize</property>
+                        <property name="sizing">fixed</property>
                         <property name="fixed_width">150</property>
                         <property name="title" translatable="yes">Directory</property>
                         <property name="sort_indicator">True</property>

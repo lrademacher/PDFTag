@@ -242,14 +242,20 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="tags_selected_column">
+                        <property name="sizing">autosize</property>
+                        <property name="fixed_width">69</property>
                         <property name="title" translatable="yes">Selected</property>
                         <child>
-                          <object class="GtkCellRendererToggle" id="tags_selected_renderer"/>
+                          <object class="GtkCellRendererToggle" id="tags_selected_renderer">
+                            <signal name="toggled" handler="on_tags_selected_renderer_toggled" swapped="no"/>
+                          </object>
                         </child>
                       </object>
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="tags_tag_column">
+                        <property name="sizing">autosize</property>
+                        <property name="fixed_width">91</property>
                         <property name="title" translatable="yes">Tag</property>
                         <child>
                           <object class="GtkCellRendererText" id="tags_tag_renderer"/>

@@ -6,6 +6,7 @@
 #include <sys/types.h>
 
 #include <string.h>
+#include <algorithm>
 
 #include "Logging.h"
 
@@ -14,6 +15,10 @@
 
 #define FIND_COMMAND "/usr/bin/find "
 #define FIND_EXPRESSION_PDF " -iname \"*.pdf\""
+
+/* Variables */
+std::vector<std::string> PdfFile::AvailableTags;
+std::vector<PdfFile> PdfFile::Files;
 
 /* Implementation */
 PdfFile::PdfFile(std::string &path)
@@ -96,14 +101,21 @@ void PdfFile::readTags(std::string &filepath)
     }
 }
 
-int PdfFile::loadPdfFilesFromDir(std::string &path, std::vector<PdfFile> &files)
+/* Static */
+
+std::vector<PdfFile>& PdfFile::getFiles()
+{
+    return Files;
+}
+
+int PdfFile::loadPdfFilesFromDir(std::string &path)
 {
     FILE *fp;
     char find_result_line[1024];
     std::string cmd;
 
     // clear old filelist
-    files.clear();
+    Files.clear();
 
     // assemble command
     cmd = FIND_COMMAND;
@@ -128,12 +140,35 @@ int PdfFile::loadPdfFilesFromDir(std::string &path, std::vector<PdfFile> &files)
 
         std::string filepath (find_result_line);
 
-        files.push_back(filepath);
+        Files.push_back(filepath);
     }
 
-    LOG(LOG_INFO, "found %d files\n", (int)files.size());   
+    LOG(LOG_INFO, "found %d files\n", (int)Files.size());   
 
     pclose(fp);
 
-    return (int)files.size();
+    updateAvailableTags();
+
+    return (int)Files.size();
+}
+
+void PdfFile::updateAvailableTags()
+{
+    AvailableTags.clear();
+
+    for (PdfFile pf : Files)
+    {
+        for (std::string tag : pf.getTags())
+        {
+            if (std::find(AvailableTags.begin(), AvailableTags.end(), tag) == AvailableTags.end())
+            {
+                AvailableTags.push_back(tag);
+            }
+        }
+    }
+}
+
+std::vector<std::string>& PdfFile::getAllAvailableTags()
+{
+    return AvailableTags;
 }

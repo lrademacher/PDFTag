@@ -49,7 +49,6 @@ static struct
     GtkTreeIter             tags_tree_iterator;
 } data;
 
-static std::vector<PdfFile> files;
 
 /* Prototypes */
 static void
@@ -106,6 +105,7 @@ main(int argc, char **argv) {
     gtk_tree_view_column_add_attribute(data.file_date_column, data.file_date_renderer, "text", 2);
     gtk_tree_view_column_add_attribute(data.file_tags_column, data.file_tags_renderer, "text", 3);
     
+    gtk_tree_view_column_add_attribute(data.tags_tag_column, data.tags_tag_renderer, "active", 0);
     gtk_tree_view_column_add_attribute(data.tags_tag_column, data.tags_tag_renderer, "text", 1);
 
     g_signal_connect(data.window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
@@ -132,7 +132,7 @@ display_files()
     // clear table
     gtk_tree_store_clear(data.file_treestore);
 
-    for (PdfFile f: files)
+    for (PdfFile f: PdfFile::getFiles())
     {
         gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
 
@@ -196,7 +196,7 @@ on_about_dialog_response(GtkDialog *dialog, gint response_id)
 static void
 loadFiles(std::string &path)
 {
-    int numFiles = PdfFile::loadPdfFilesFromDir(path, files);
+    int numFiles = PdfFile::loadPdfFilesFromDir(path);
     display_files();
 
     std::string statusString = "Loaded " + std::to_string(numFiles) + " files.";
@@ -246,5 +246,17 @@ on_file_selection_changed(GtkWidget *w)
     gtk_tree_model_get(model, &iter, 0, &value, -1);
     LOG(LOG_INFO, "col 0 = %s\n", value);
 
+    // clear table
+    gtk_tree_store_clear(data.tags_treestore);
+
+    // populate tags table
+    for(std::string tag : PdfFile::getAllAvailableTags())
+    {
+        gtk_tree_store_append(data.tags_treestore, &data.tags_tree_iterator, NULL);
+        gtk_tree_store_set(data.tags_treestore, &data.tags_tree_iterator, 0, TRUE, 1, tag, -1);
+    }
+
     // gtk_tree_model_get(model, &iter, 1, &value, -1);
 }
+
+// on_tags_selected_renderer_toggled

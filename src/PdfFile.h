@@ -12,7 +12,10 @@ public:
     std::string& getCreationTime();
     std::vector<std::string>& getTags();
 
-    static int loadPdfFilesFromDir(std::string &path, std::vector<PdfFile> &files);
+    static std::vector<PdfFile>& getFiles();
+
+    static int loadPdfFilesFromDir(std::string &path);
+    static std::vector<std::string>& getAllAvailableTags();
 private:
     // empty constructor not allowed
     PdfFile();
@@ -20,9 +23,16 @@ private:
     void readCreationTime(std::string &filepath);
     void readTags(std::string &filepath);
 
+    static void updateAvailableTags();
+
     std::string mFilename;
     std::string mCreationTime;
     std::vector<std::string> mTags;
+
+    // TODO: Make this dict: key=filename
+    static std::vector<PdfFile> Files;
+
+    static std::vector<std::string> AvailableTags;
 };
 
 #endif
