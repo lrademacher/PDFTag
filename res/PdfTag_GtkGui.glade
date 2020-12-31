@@ -218,28 +218,28 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
-                  <object class="GtkTreeView" id="TagsTable">
+                  <object class="GtkTreeView" id="tags_treeview">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="model">tags_treestore</property>
                     <property name="search_column">0</property>
                     <property name="show_expanders">False</property>
                     <child internal-child="selection">
-                      <object class="GtkTreeSelection"/>
+                      <object class="GtkTreeSelection" id="tags_select"/>
                     </child>
                     <child>
-                      <object class="GtkTreeViewColumn" id="tt_col_selected">
+                      <object class="GtkTreeViewColumn" id="tags_selected_column">
                         <property name="title" translatable="yes">Select</property>
                         <child>
-                          <object class="GtkCellRendererToggle" id="tt_row_select"/>
+                          <object class="GtkCellRendererToggle" id="tags_selected_renderer"/>
                         </child>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkTreeViewColumn" id="tt_col_tag">
+                      <object class="GtkTreeViewColumn" id="tags_tag_column">
                         <property name="title" translatable="yes">Tag</property>
                         <child>
-                          <object class="GtkCellRendererText" id="tt_col_tag1"/>
+                          <object class="GtkCellRendererText" id="tags_tag_renderer"/>
                         </child>
                       </object>
                     </child>
@@ -268,7 +268,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
-                  <object class="GtkTreeView" id="FileTable">
+                  <object class="GtkTreeView" id="file_treeview">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="model">file_treestore</property>
@@ -277,29 +277,29 @@
                     <property name="show_expanders">False</property>
                     <property name="enable_grid_lines">both</property>
                     <child internal-child="selection">
-                      <object class="GtkTreeSelection">
+                      <object class="GtkTreeSelection" id="file_select">
                         <signal name="changed" handler="on_file_selection_changed" swapped="no"/>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkTreeViewColumn" id="ft_col_file">
+                      <object class="GtkTreeViewColumn" id="file_file_column">
                         <property name="title" translatable="yes">File</property>
                         <property name="clickable">True</property>
                         <property name="sort_indicator">True</property>
                         <property name="sort_column_id">0</property>
                         <child>
-                          <object class="GtkCellRendererText" id="ft_row_file"/>
+                          <object class="GtkCellRendererText" id="file_file_renderer"/>
                         </child>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkTreeViewColumn" id="ft_col_date">
+                      <object class="GtkTreeViewColumn" id="file_date_column">
                         <property name="title" translatable="yes">Date</property>
                         <property name="clickable">True</property>
                         <property name="sort_indicator">True</property>
                         <property name="sort_column_id">1</property>
                         <child>
-                          <object class="GtkCellRendererText" id="ft_row_date"/>
+                          <object class="GtkCellRendererText" id="file_date_renderer"/>
                         </child>
                       </object>
                     </child>

@@ -1,24 +1,52 @@
 #include <gtk/gtk.h>
 #include <stdio.h>
 
+/* Defines/Macros */
+
 #define UI_FILE "PdfTag_GtkGui.glade"
 #define GTK_CALLBACK extern "C" G_MODULE_EXPORT
 
 #define XSTR(a) STR(a)
 #define STR(a) #a
-#define GET_WIDGET(name) data.name = GTK_WIDGET(gtk_builder_get_object(builder, XSTR(name)))
+#define GET_GTK(name, type) data.name = type(gtk_builder_get_object(builder, XSTR(name)))
 
 #define LOG_INFO (0)
 #define LOG_WARN (1)
 #define LOG_ERR  (2)
 #define LOG(level, ...) printf((level==LOG_INFO) ? "INFO: " : (level==LOG_WARN) ? "WARNING: " : (level==LOG_ERR) ? "ERROR: " : ""); printf(__VA_ARGS__)
 
+/* Prototypes */
+static void
+display_pdf_files_in_dir(gchar *directory);
 
-struct {
-    GtkWidget *window;
-    GtkWidget *file_chooser;
-    GtkWidget *about_dialog;
+/* Variables */
+static struct 
+{
+    GtkWidget               *window;
+    GtkWidget               *file_chooser;
+    GtkWidget               *about_dialog;
+
+    GtkTreeStore            *file_treestore;
+    GtkTreeView             *file_treeview;
+    GtkTreeViewColumn       *file_file_column;
+    GtkTreeViewColumn       *file_date_column;
+    GtkTreeSelection        *file_select;
+    GtkCellRenderer         *file_file_renderer;
+    GtkCellRenderer         *file_date_renderer;
+    GtkTreeIter             file_tree_iterator;
+
+    GtkTreeStore            *tags_treestore;
+    GtkTreeView             *tags_treeview; 
+    GtkTreeViewColumn       *tags_selected_column;
+    GtkTreeViewColumn       *tags_tag_column;
+    GtkTreeSelection        *tags_select;
+    GtkCellRenderer         *tags_selected_renderer;
+    GtkCellRenderer         *tags_tag_renderer;
+    GtkTreeIter             tags_tree_iterator;
+
 } data;
+
+/* Implementations */
 
 int
 main(int argc, char **argv) {
@@ -37,9 +65,32 @@ main(int argc, char **argv) {
     }
 
     // get widgets from builder
-    GET_WIDGET(window);
-    GET_WIDGET(file_chooser);
-    GET_WIDGET(about_dialog);
+    GET_GTK(window, GTK_WIDGET);
+    GET_GTK(file_chooser, GTK_WIDGET);
+    GET_GTK(about_dialog, GTK_WIDGET);
+
+    GET_GTK(file_treestore, GTK_TREE_STORE);
+    GET_GTK(file_treeview, GTK_TREE_VIEW);
+    GET_GTK(file_file_column, GTK_TREE_VIEW_COLUMN);
+    GET_GTK(file_date_column, GTK_TREE_VIEW_COLUMN);
+    GET_GTK(file_select, GTK_TREE_SELECTION);
+    GET_GTK(file_file_renderer, GTK_CELL_RENDERER);
+    GET_GTK(file_date_renderer, GTK_CELL_RENDERER);
+    
+    GET_GTK(tags_treestore, GTK_TREE_STORE);
+    GET_GTK(tags_treeview, GTK_TREE_VIEW); 
+    GET_GTK(tags_selected_column, GTK_TREE_VIEW_COLUMN);
+    GET_GTK(tags_tag_column, GTK_TREE_VIEW_COLUMN);
+    GET_GTK(tags_select, GTK_TREE_SELECTION);
+    GET_GTK(tags_selected_renderer, GTK_CELL_RENDERER);
+    GET_GTK(tags_tag_renderer, GTK_CELL_RENDERER);
+
+    // attach renderers to columns
+    gtk_tree_view_column_add_attribute(data.file_file_column, data.file_file_renderer, "text", 0);
+    gtk_tree_view_column_add_attribute(data.file_date_column, data.file_date_renderer, "text", 1);
+    
+    gtk_tree_view_column_add_attribute(data.tags_selected_column, data.tags_selected_renderer, "boolean", 0);
+    gtk_tree_view_column_add_attribute(data.tags_tag_column, data.tags_tag_renderer, "text", 1);
 
     g_signal_connect(data.window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
@@ -53,6 +104,20 @@ main(int argc, char **argv) {
     gtk_main();
 
     return EXIT_SUCCESS;
+}
+
+static void
+display_pdf_files_in_dir(gchar *directory)
+{
+    (void)directory;
+    // add data rows
+    gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
+    gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, "testFile", 1, "testdate");
+    gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
+    gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, "testFile2", 1, "testdate2");
+    gtk_tree_store_clear(data.file_treestore);
+    gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
+    gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, "testFile3", 1, "testdate3");
 }
 
 GTK_CALLBACK void
@@ -106,6 +171,9 @@ on_file_chooser_ok_button_clicked(GtkButton *b)
     // TODO: Do something 
     // TODO: Handle null
     LOG(LOG_INFO, "directory %s chosen\n", gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(data.file_chooser)));
+    LOG(LOG_INFO, "URI %s chosen\n", gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(data.file_chooser)));
+
+    display_pdf_files_in_dir(gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(data.file_chooser)));
 
     gtk_widget_hide(data.file_chooser);
 }
