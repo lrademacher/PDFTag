@@ -103,6 +103,8 @@
     <columns>
       <!-- column-name file_name -->
       <column type="gchararray"/>
+      <!-- column-name file_dir -->
+      <column type="gchararray"/>
       <!-- column-name file_date -->
       <column type="gchararray"/>
       <!-- column-name file_tags -->
@@ -238,7 +240,7 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="tags_selected_column">
-                        <property name="title" translatable="yes">Select</property>
+                        <property name="title" translatable="yes">Selected</property>
                         <child>
                           <object class="GtkCellRendererToggle" id="tags_selected_renderer"/>
                         </child>
@@ -289,7 +291,6 @@
                     <property name="enable_grid_lines">both</property>
                     <child internal-child="selection">
                       <object class="GtkTreeSelection" id="file_select">
-                        <property name="mode">multiple</property>
                         <signal name="changed" handler="on_file_selection_changed" swapped="no"/>
                       </object>
                     </child>
@@ -303,6 +304,15 @@
                         <property name="sort_column_id">0</property>
                         <child>
                           <object class="GtkCellRendererText" id="file_file_renderer"/>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="file_dir_column">
+                        <property name="sizing">fixed</property>
+                        <property name="title" translatable="yes">Directory</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="file_dir_renderer"/>
                         </child>
                       </object>
                     </child>

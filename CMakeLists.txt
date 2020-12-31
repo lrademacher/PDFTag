@@ -24,7 +24,7 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/res/PdfTag_GtkGui.glade ${CMAKE_CURRE
 
 add_executable(${BIN_NAME} ${SOURCES})
 
-target_compile_options(${BIN_NAME} PRIVATE -Wall -Wextra -pedantic)
+target_compile_options(${BIN_NAME} PRIVATE -Wall -Wextra -pedantic -std=gnu++17)
 
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 

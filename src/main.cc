@@ -4,6 +4,9 @@
 #include "PdfFile.h"
 #include "Logging.h"
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
 /* Defines/Macros */
 
 #define UI_FILE "PdfTag_GtkGui.glade"
@@ -26,10 +29,12 @@ static struct
     GtkTreeStore            *file_treestore;
     GtkTreeView             *file_treeview;
     GtkTreeViewColumn       *file_file_column;
+    GtkTreeViewColumn       *file_dir_column;
     GtkTreeViewColumn       *file_date_column;
     GtkTreeViewColumn       *file_tags_column;
     GtkTreeSelection        *file_select;
     GtkCellRenderer         *file_file_renderer;
+    GtkCellRenderer         *file_dir_renderer;
     GtkCellRenderer         *file_date_renderer;
     GtkCellRenderer         *file_tags_renderer;
     GtkTreeIter             file_tree_iterator;
@@ -77,10 +82,12 @@ main(int argc, char **argv) {
     GET_GTK(file_treestore, GTK_TREE_STORE);
     GET_GTK(file_treeview, GTK_TREE_VIEW);
     GET_GTK(file_file_column, GTK_TREE_VIEW_COLUMN);
+    GET_GTK(file_dir_column, GTK_TREE_VIEW_COLUMN);
     GET_GTK(file_date_column, GTK_TREE_VIEW_COLUMN);
     GET_GTK(file_tags_column, GTK_TREE_VIEW_COLUMN);
     GET_GTK(file_select, GTK_TREE_SELECTION);
     GET_GTK(file_file_renderer, GTK_CELL_RENDERER);
+    GET_GTK(file_dir_renderer, GTK_CELL_RENDERER);
     GET_GTK(file_date_renderer, GTK_CELL_RENDERER);
     GET_GTK(file_tags_renderer, GTK_CELL_RENDERER);
     
@@ -94,10 +101,10 @@ main(int argc, char **argv) {
 
     // attach renderers to columns
     gtk_tree_view_column_add_attribute(data.file_file_column, data.file_file_renderer, "text", 0);
-    gtk_tree_view_column_add_attribute(data.file_date_column, data.file_date_renderer, "text", 1);
-    gtk_tree_view_column_add_attribute(data.file_tags_column, data.file_tags_renderer, "text", 2);
+    gtk_tree_view_column_add_attribute(data.file_dir_column, data.file_dir_renderer, "text", 1);
+    gtk_tree_view_column_add_attribute(data.file_date_column, data.file_date_renderer, "text", 2);
+    gtk_tree_view_column_add_attribute(data.file_tags_column, data.file_tags_renderer, "text", 3);
     
-    gtk_tree_view_column_add_attribute(data.tags_selected_column, data.tags_selected_renderer, "boolean", 0);
     gtk_tree_view_column_add_attribute(data.tags_tag_column, data.tags_tag_renderer, "text", 1);
 
     g_signal_connect(data.window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
@@ -136,7 +143,7 @@ display_files()
                 tagString.append(",");
         }
         
-        gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, basename(f.getFilename().c_str()), 1, f.getCreationTime().c_str(), 2, tagString.c_str(), -1);
+        gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, fs::path( f.getFilename() ).filename().c_str(), 1, fs::path( f.getFilename() ).parent_path().c_str(), 2, f.getCreationTime().c_str(), 3, tagString.c_str(), -1);
     }
 }
 
@@ -210,4 +217,23 @@ on_file_chooser_cancel_button_clicked(GtkButton *b)
     LOG(LOG_INFO, "on_file_chooser_cancel_button_clicked\n");
 
     gtk_widget_hide(data.file_chooser);
+}
+
+GTK_CALLBACK void
+on_file_selection_changed(GtkWidget *w)
+{
+    (void)w;
+    gchar *value;
+    GtkTreeIter iter;
+    GtkTreeModel *model;
+
+    LOG(LOG_INFO, "on_file_selection_changed\n");
+
+    if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(w), &model, &iter) == FALSE)
+        return;
+
+    gtk_tree_model_get(model, &iter, 0, &value, -1);
+    LOG(LOG_INFO, "col 0 = %s\n", value);
+
+    // gtk_tree_model_get(model, &iter, 1, &value, -1);
 }

@@ -238,7 +238,7 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="tags_selected_column">
-                        <property name="title" translatable="yes">Select</property>
+                        <property name="title" translatable="yes">Selected</property>
                         <child>
                           <object class="GtkCellRendererToggle" id="tags_selected_renderer"/>
                         </child>
@@ -302,6 +302,15 @@
                         <property name="sort_column_id">0</property>
                         <child>
                           <object class="GtkCellRendererText" id="file_file_renderer"/>
+                        </child>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkTreeViewColumn" id="file_dir_column">
+                        <property name="sizing">fixed</property>
+                        <property name="title" translatable="yes">Directory</property>
+                        <child>
+                          <object class="GtkCellRendererText" id="file_dir_renderer"/>
                         </child>
                       </object>
                     </child>
