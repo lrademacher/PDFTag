@@ -286,7 +286,9 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="file_file_column">
-                        <property name="sizing">autosize</property>
+                        <property name="resizable">True</property>
+                        <property name="sizing">fixed</property>
+                        <property name="fixed_width">134</property>
                         <property name="title" translatable="yes">File</property>
                         <property name="clickable">True</property>
                         <property name="sort_indicator">True</property>
@@ -298,8 +300,12 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="file_dir_column">
+                        <property name="resizable">True</property>
                         <property name="sizing">fixed</property>
+                        <property name="fixed_width">150</property>
                         <property name="title" translatable="yes">Directory</property>
+                        <property name="sort_indicator">True</property>
+                        <property name="sort_column_id">1</property>
                         <child>
                           <object class="GtkCellRendererText" id="file_dir_renderer"/>
                         </child>
@@ -307,11 +313,13 @@
                     </child>
                     <child>
                       <object class="GtkTreeViewColumn" id="file_date_column">
-                        <property name="sizing">autosize</property>
+                        <property name="resizable">True</property>
+                        <property name="sizing">fixed</property>
+                        <property name="fixed_width">117</property>
                         <property name="title" translatable="yes">Date</property>
                         <property name="clickable">True</property>
                         <property name="sort_indicator">True</property>
-                        <property name="sort_column_id">1</property>
+                        <property name="sort_column_id">2</property>
                         <child>
                           <object class="GtkCellRendererText" id="file_date_renderer"/>
                         </child>
@@ -323,7 +331,7 @@
                         <property name="title" translatable="yes">Tags</property>
                         <property name="clickable">True</property>
                         <property name="sort_indicator">True</property>
-                        <property name="sort_column_id">2</property>
+                        <property name="sort_column_id">3</property>
                         <child>
                           <object class="GtkCellRendererText" id="file_tags_renderer"/>
                         </child>
