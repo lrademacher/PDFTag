@@ -38,6 +38,7 @@
   <object class="GtkFileChooserDialog" id="file_chooser">
     <property name="can_focus">False</property>
     <property name="type_hint">dialog</property>
+    <property name="action">select-folder</property>
     <child type="titlebar">
       <placeholder/>
     </child>
