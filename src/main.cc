@@ -1,5 +1,11 @@
+/* Includes */
 #include <gtk/gtk.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <time.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 /* Defines/Macros */
 
@@ -107,17 +113,54 @@ main(int argc, char **argv) {
 }
 
 static void
-display_pdf_files_in_dir(gchar *directory)
+getFileModifiedTime(char *file_path, char *modified_time_string, size_t max_str_size)
 {
-    (void)directory;
+    struct stat attr;
+    stat(file_path, &attr);
+    //strcpy(modified_time_string, ctime(&attr.st_mtime));
+    strftime(modified_time_string, max_str_size, "%F %T", localtime(&(attr.st_ctime)));
+}
+
+static void
+display_pdf_files_in_dir(char *directory)
+{
+    FILE *fp;
+    char find_result_line[1024];
+    char cmd [300];
+    char file_mod_str[20];
+
+    strcpy(cmd, "/usr/bin/find ");
+    strcat(cmd, directory);
+    strcat(cmd, " -iname \"*.pdf\"");
+
+    LOG(LOG_INFO, "executing command: %s\n", cmd);   
+
+     /* Open the command for reading. */
+    fp = popen(cmd, "r");
+    if (fp == NULL) {
+        printf("Failed to run command\n" );
+        return;
+    }
+
     // add data rows
-    gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
-    gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, "testFile", 1, "testdate");
-    gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
-    gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, "testFile2", 1, "testdate2");
     gtk_tree_store_clear(data.file_treestore);
-    gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
-    gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, "testFile3", 1, "testdate3");
+
+    /* Read the output a line at a time - output it. */
+    while (fgets(find_result_line, sizeof(find_result_line), fp) != NULL) {
+        // remove trailing newline
+        char *pos;
+        if ((pos=strchr(find_result_line, '\n')) != NULL)
+            *pos = '\0';
+
+        getFileModifiedTime(find_result_line, file_mod_str, sizeof(file_mod_str));
+
+        printf("%s", find_result_line);
+        gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
+        gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, basename(find_result_line), 1, file_mod_str, -1);
+    }
+
+    /* close */
+    pclose(fp);
 }
 
 GTK_CALLBACK void
@@ -168,10 +211,7 @@ on_file_chooser_ok_button_clicked(GtkButton *b)
 
     LOG(LOG_INFO, "on_file_chooser_ok_button_clicked\n");
 
-    // TODO: Do something 
-    // TODO: Handle null
     LOG(LOG_INFO, "directory %s chosen\n", gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(data.file_chooser)));
-    LOG(LOG_INFO, "URI %s chosen\n", gtk_file_chooser_get_uri(GTK_FILE_CHOOSER(data.file_chooser)));
 
     display_pdf_files_in_dir(gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(data.file_chooser)));
 
