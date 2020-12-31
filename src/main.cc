@@ -1,11 +1,8 @@
 /* Includes */
 #include <gtk/gtk.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+
+#include "PdfFile.h"
+#include "Logging.h"
 
 /* Defines/Macros */
 
@@ -16,14 +13,7 @@
 #define STR(a) #a
 #define GET_GTK(name, type) data.name = type(gtk_builder_get_object(builder, XSTR(name)))
 
-#define LOG_INFO (0)
-#define LOG_WARN (1)
-#define LOG_ERR  (2)
-#define LOG(level, ...) printf((level==LOG_INFO) ? "INFO: " : (level==LOG_WARN) ? "WARNING: " : (level==LOG_ERR) ? "ERROR: " : ""); printf(__VA_ARGS__)
-
-/* Prototypes */
-static void
-display_pdf_files_in_dir(gchar *directory);
+/* Types */
 
 /* Variables */
 static struct 
@@ -31,14 +21,17 @@ static struct
     GtkWidget               *window;
     GtkWidget               *file_chooser;
     GtkWidget               *about_dialog;
+    GtkLabel                *status_label;
 
     GtkTreeStore            *file_treestore;
     GtkTreeView             *file_treeview;
     GtkTreeViewColumn       *file_file_column;
     GtkTreeViewColumn       *file_date_column;
+    GtkTreeViewColumn       *file_tags_column;
     GtkTreeSelection        *file_select;
     GtkCellRenderer         *file_file_renderer;
     GtkCellRenderer         *file_date_renderer;
+    GtkCellRenderer         *file_tags_renderer;
     GtkTreeIter             file_tree_iterator;
 
     GtkTreeStore            *tags_treestore;
@@ -49,8 +42,12 @@ static struct
     GtkCellRenderer         *tags_selected_renderer;
     GtkCellRenderer         *tags_tag_renderer;
     GtkTreeIter             tags_tree_iterator;
-
 } data;
+
+static std::vector<PdfFile> files;
+
+/* Prototypes */
+
 
 /* Implementations */
 
@@ -74,14 +71,18 @@ main(int argc, char **argv) {
     GET_GTK(window, GTK_WIDGET);
     GET_GTK(file_chooser, GTK_WIDGET);
     GET_GTK(about_dialog, GTK_WIDGET);
+    
+    GET_GTK(status_label, GTK_LABEL);
 
     GET_GTK(file_treestore, GTK_TREE_STORE);
     GET_GTK(file_treeview, GTK_TREE_VIEW);
     GET_GTK(file_file_column, GTK_TREE_VIEW_COLUMN);
     GET_GTK(file_date_column, GTK_TREE_VIEW_COLUMN);
+    GET_GTK(file_tags_column, GTK_TREE_VIEW_COLUMN);
     GET_GTK(file_select, GTK_TREE_SELECTION);
     GET_GTK(file_file_renderer, GTK_CELL_RENDERER);
     GET_GTK(file_date_renderer, GTK_CELL_RENDERER);
+    GET_GTK(file_tags_renderer, GTK_CELL_RENDERER);
     
     GET_GTK(tags_treestore, GTK_TREE_STORE);
     GET_GTK(tags_treeview, GTK_TREE_VIEW); 
@@ -94,6 +95,7 @@ main(int argc, char **argv) {
     // attach renderers to columns
     gtk_tree_view_column_add_attribute(data.file_file_column, data.file_file_renderer, "text", 0);
     gtk_tree_view_column_add_attribute(data.file_date_column, data.file_date_renderer, "text", 1);
+    gtk_tree_view_column_add_attribute(data.file_tags_column, data.file_tags_renderer, "text", 2);
     
     gtk_tree_view_column_add_attribute(data.tags_selected_column, data.tags_selected_renderer, "boolean", 0);
     gtk_tree_view_column_add_attribute(data.tags_tag_column, data.tags_tag_renderer, "text", 1);
@@ -113,54 +115,29 @@ main(int argc, char **argv) {
 }
 
 static void
-getFileModifiedTime(char *file_path, char *modified_time_string, size_t max_str_size)
+display_files()
 {
-    struct stat attr;
-    stat(file_path, &attr);
-    //strcpy(modified_time_string, ctime(&attr.st_mtime));
-    strftime(modified_time_string, max_str_size, "%F %T", localtime(&(attr.st_ctime)));
-}
-
-static void
-display_pdf_files_in_dir(char *directory)
-{
-    FILE *fp;
-    char find_result_line[1024];
-    char cmd [300];
-    char file_mod_str[20];
-
-    strcpy(cmd, "/usr/bin/find ");
-    strcat(cmd, directory);
-    strcat(cmd, " -iname \"*.pdf\"");
-
-    LOG(LOG_INFO, "executing command: %s\n", cmd);   
-
-     /* Open the command for reading. */
-    fp = popen(cmd, "r");
-    if (fp == NULL) {
-        printf("Failed to run command\n" );
-        return;
-    }
-
-    // add data rows
+    // clear table
     gtk_tree_store_clear(data.file_treestore);
 
-    /* Read the output a line at a time - output it. */
-    while (fgets(find_result_line, sizeof(find_result_line), fp) != NULL) {
-        // remove trailing newline
-        char *pos;
-        if ((pos=strchr(find_result_line, '\n')) != NULL)
-            *pos = '\0';
-
-        getFileModifiedTime(find_result_line, file_mod_str, sizeof(file_mod_str));
-
-        printf("%s", find_result_line);
+    for (PdfFile f: files)
+    {
         gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
-        gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, basename(find_result_line), 1, file_mod_str, -1);
-    }
 
-    /* close */
-    pclose(fp);
+        std::vector<std::string>& tags = f.getTags();
+
+        std::string tagString = "";
+        auto it = tags.begin();
+
+        while(it != tags.end())
+        {
+            tagString.append(*it++);
+            if(it != tags.end())
+                tagString.append(",");
+        }
+        
+        gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, basename(f.getFilename().c_str()), 1, f.getCreationTime().c_str(), 2, tagString.c_str(), -1);
+    }
 }
 
 GTK_CALLBACK void
@@ -213,7 +190,14 @@ on_file_chooser_ok_button_clicked(GtkButton *b)
 
     LOG(LOG_INFO, "directory %s chosen\n", gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(data.file_chooser)));
 
-    display_pdf_files_in_dir(gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(data.file_chooser)));
+    std::string pathString (gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(data.file_chooser)));
+
+    int numFiles = PdfFile::loadPdfFilesFromDir(pathString, files);
+    display_files();
+
+    std::string statusString = "Loaded " + std::to_string(numFiles) + " files.";
+
+    gtk_label_set_label(data.status_label, statusString.c_str());
 
     gtk_widget_hide(data.file_chooser);
 }
