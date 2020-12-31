@@ -52,7 +52,8 @@ static struct
 static std::vector<PdfFile> files;
 
 /* Prototypes */
-
+static void
+loadFiles(std::string &path);
 
 /* Implementations */
 
@@ -115,6 +116,10 @@ main(int argc, char **argv) {
     g_object_unref( G_OBJECT( builder ) );
 
     gtk_widget_show(data.window);
+
+    // TODO: persistency
+    std::string default_path = "/home/lars/Nextcloud.Webo/Dokumente/Scans";
+    loadFiles(default_path);
 
     gtk_main();
 
@@ -188,6 +193,17 @@ on_about_dialog_response(GtkDialog *dialog, gint response_id)
     gtk_widget_hide(data.about_dialog);
 }
 
+static void
+loadFiles(std::string &path)
+{
+    int numFiles = PdfFile::loadPdfFilesFromDir(path, files);
+    display_files();
+
+    std::string statusString = "Loaded " + std::to_string(numFiles) + " files.";
+
+    gtk_label_set_label(data.status_label, statusString.c_str());
+}
+
 GTK_CALLBACK void
 on_file_chooser_ok_button_clicked(GtkButton *b)
 {
@@ -199,12 +215,7 @@ on_file_chooser_ok_button_clicked(GtkButton *b)
 
     std::string pathString (gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(data.file_chooser)));
 
-    int numFiles = PdfFile::loadPdfFilesFromDir(pathString, files);
-    display_files();
-
-    std::string statusString = "Loaded " + std::to_string(numFiles) + " files.";
-
-    gtk_label_set_label(data.status_label, statusString.c_str());
+    loadFiles(pathString);
 
     gtk_widget_hide(data.file_chooser);
 }
