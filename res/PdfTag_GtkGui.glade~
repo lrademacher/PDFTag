@@ -103,6 +103,8 @@
     <columns>
       <!-- column-name file_name -->
       <column type="gchararray"/>
+      <!-- column-name file_dir -->
+      <column type="gchararray"/>
       <!-- column-name file_date -->
       <column type="gchararray"/>
       <!-- column-name file_tags -->
@@ -223,9 +225,11 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkViewport">
+              <object class="GtkScrolledWindow">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">never</property>
+                <property name="shadow_type">in</property>
                 <child>
                   <object class="GtkTreeView" id="tags_treeview">
                     <property name="visible">True</property>
@@ -273,15 +277,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkViewport">
+              <object class="GtkScrolledWindow">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="vadjustment">adjustment1</property>
+                <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">never</property>
+                <property name="shadow_type">in</property>
                 <child>
                   <object class="GtkTreeView" id="file_treeview">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="hadjustment">adjustment1</property>
                     <property name="model">file_treestore</property>
                     <property name="reorderable">True</property>
                     <property name="search_column">0</property>
