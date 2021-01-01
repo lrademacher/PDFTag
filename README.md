@@ -12,3 +12,6 @@ This software uses std::filesystem, so a gcc with C++17 support shall be used.
 * Save all selected PDFs in a directory
 * String-based filter
 * Date-based filter
+* Add special filter <untagged>
+* Integrate into deb package management to resolve dependencies and make installation easy
+* Add persistency of working directory
