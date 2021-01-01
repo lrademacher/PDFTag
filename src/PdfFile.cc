@@ -10,8 +10,12 @@
 
 #include "Logging.h"
 
+#include <stdexcept>
+
 /* Defines/Macros */
 #define EXIF_TOOL_READ_STR "exiftool -Keywords "
+#define EXIF_TOOL_ADD_STR "exiftool -Keywords+="
+#define EXIF_TOOL_REMOVE_STR "exiftool -Keywords-="
 
 #define FIND_COMMAND "/usr/bin/find "
 #define FIND_EXPRESSION_PDF " -iname \"*.pdf\""
@@ -41,6 +45,82 @@ std::string& PdfFile::getCreationTime()
 std::vector<std::string>& PdfFile::getTags()
 {
     return mTags;
+}
+
+bool PdfFile::containsTag(std::string &tag)
+{
+    return (std::find(mTags.begin(), mTags.end(), tag) != mTags.end());
+}
+
+bool PdfFile::containsTags(std::vector<std::string> &tags)
+{
+    bool containsTags = true;
+    
+    for (std::string tag : tags)
+    {
+        if(!containsTag(tag))
+        {
+            containsTags = false;
+        }
+    }
+
+    return containsTags;
+}
+
+void PdfFile::setTag(std::string &tag, bool selected)
+{
+    FILE *fp;
+    char exiftool_result_line[1024];
+    std::string cmd;
+    
+    LOG(LOG_INFO, "setting tag: %s to %d\n", tag.c_str(), selected);   
+
+    // assemble command
+    if(selected)
+    {
+        cmd = EXIF_TOOL_ADD_STR;
+    }
+    else
+    {
+        cmd = EXIF_TOOL_REMOVE_STR;
+    }
+    
+    cmd += tag;
+
+    cmd += " \"";
+    cmd += mFilename;
+    cmd += "\"";
+
+    LOG(LOG_INFO, "executing command: %s\n", cmd.c_str());   
+
+    // Open the command for reading.
+    fp = popen(cmd.c_str(), "r");
+    if (fp == NULL) {
+        LOG(LOG_ERR, "Failed to run command\n");
+    }
+
+    // Read the output a line at a time - output it.
+    while (fgets(exiftool_result_line, sizeof(exiftool_result_line), fp) != NULL) {
+        if(strncmp(exiftool_result_line, "    1 image files updated", 25) != 0)
+        {
+            LOG(LOG_ERR, "Commando did not execute as expected: %s.\n", exiftool_result_line);
+        }
+    }
+
+    // update tags structure
+    if(selected)
+    {
+        mTags.push_back(tag);
+    }
+    else
+    {
+        auto find_res = std::find(mTags.begin(), mTags.end(), tag);
+        if(find_res != mTags.end())
+            mTags.erase(find_res);
+    }
+
+    // Update overall available tag list
+    updateAvailableTags();
 }
 
 void PdfFile::readCreationTime(std::string &filepath)
@@ -106,6 +186,19 @@ void PdfFile::readTags(std::string &filepath)
 std::vector<PdfFile>& PdfFile::getFiles()
 {
     return Files;
+}
+
+PdfFile* PdfFile::getFileByFilename(std::string filename)
+{
+    std::vector<PdfFile>::iterator it = std::find_if(Files.begin(), Files.end(), [filename](PdfFile &obj){
+        return obj.getFilename() == filename;
+    } );
+    if(it != Files.end())
+    {
+        return &(*it);
+    }
+    
+    return nullptr;
 }
 
 int PdfFile::loadPdfFilesFromDir(std::string &path)

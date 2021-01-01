@@ -44,7 +44,13 @@
         "streambuf": "cpp",
         "cinttypes": "cpp",
         "bit": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "ratio": "cpp",
+        "chrono": "cpp",
+        "codecvt": "cpp",
+        "ctime": "cpp",
+        "list": "cpp",
+        "iomanip": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

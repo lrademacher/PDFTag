@@ -11,8 +11,12 @@ public:
     std::string& getFilename();
     std::string& getCreationTime();
     std::vector<std::string>& getTags();
+    bool containsTag(std::string &tag);
+    bool containsTags(std::vector<std::string> &tags);
+    void setTag(std::string &tag, bool selected);
 
     static std::vector<PdfFile>& getFiles();
+    static PdfFile* getFileByFilename(std::string filename);
 
     static int loadPdfFilesFromDir(std::string &path);
     static std::vector<std::string>& getAllAvailableTags();

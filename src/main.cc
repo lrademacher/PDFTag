@@ -7,6 +7,9 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
+// std::find
+#include <algorithm>
+
 /* Defines/Macros */
 
 #define UI_FILE "PdfTag_GtkGui.glade"
@@ -15,6 +18,8 @@ namespace fs = std::filesystem;
 #define XSTR(a) STR(a)
 #define STR(a) #a
 #define GET_GTK(name, type) data.name = type(gtk_builder_get_object(builder, XSTR(name)))
+
+#define TAGS_LABEL_STR "Tags of File: "
 
 /* Types */
 
@@ -25,6 +30,7 @@ static struct
     GtkWidget               *file_chooser;
     GtkWidget               *about_dialog;
     GtkLabel                *status_label;
+    GtkEntry                *new_tag_entry;
 
     GtkTreeStore            *file_treestore;
     GtkTreeView             *file_treeview;
@@ -39,6 +45,17 @@ static struct
     GtkCellRenderer         *file_tags_renderer;
     GtkTreeIter             file_tree_iterator;
 
+    GtkLabel                *tagsearch_label;
+    GtkTreeStore            *tagsearch_treestore;
+    GtkTreeView             *tagsearch_treeview; 
+    GtkTreeViewColumn       *tagsearch_selected_column;
+    GtkTreeViewColumn       *tagsearch_tag_column;
+    GtkTreeSelection        *tagsearch_select;
+    GtkCellRenderer         *tagsearch_selected_renderer;
+    GtkCellRenderer         *tagsearch_tag_renderer;
+    GtkTreeIter             tagsearch_tree_iterator;
+
+    GtkLabel                *tags_label;
     GtkTreeStore            *tags_treestore;
     GtkTreeView             *tags_treeview; 
     GtkTreeViewColumn       *tags_selected_column;
@@ -49,10 +66,27 @@ static struct
     GtkTreeIter             tags_tree_iterator;
 } data;
 
+std::vector<std::string> filter;
+
+PdfFile *selectedFile = nullptr;
+GtkTreeIter selectedFileIter;
+GtkTreeModel *selectedFileModel;
 
 /* Prototypes */
 static void
 loadFiles(std::string &path);
+
+static void
+display_files();
+
+static void
+display_tags(PdfFile &f, GtkTreeStore *tree_store, GtkTreeIter *iter);
+
+static void
+setup_tagfilter();
+
+static void
+update_tags_table();
 
 /* Implementations */
 
@@ -79,6 +113,8 @@ main(int argc, char **argv) {
     
     GET_GTK(status_label, GTK_LABEL);
 
+    GET_GTK(new_tag_entry, GTK_ENTRY);
+
     GET_GTK(file_treestore, GTK_TREE_STORE);
     GET_GTK(file_treeview, GTK_TREE_VIEW);
     GET_GTK(file_file_column, GTK_TREE_VIEW_COLUMN);
@@ -91,6 +127,16 @@ main(int argc, char **argv) {
     GET_GTK(file_date_renderer, GTK_CELL_RENDERER);
     GET_GTK(file_tags_renderer, GTK_CELL_RENDERER);
     
+    GET_GTK(tagsearch_label, GTK_LABEL);
+    GET_GTK(tagsearch_treestore, GTK_TREE_STORE);
+    GET_GTK(tagsearch_treeview, GTK_TREE_VIEW); 
+    GET_GTK(tagsearch_selected_column, GTK_TREE_VIEW_COLUMN);
+    GET_GTK(tagsearch_tag_column, GTK_TREE_VIEW_COLUMN);
+    GET_GTK(tagsearch_select, GTK_TREE_SELECTION);
+    GET_GTK(tagsearch_selected_renderer, GTK_CELL_RENDERER);
+    GET_GTK(tagsearch_tag_renderer, GTK_CELL_RENDERER);
+
+    GET_GTK(tags_label, GTK_LABEL);
     GET_GTK(tags_treestore, GTK_TREE_STORE);
     GET_GTK(tags_treeview, GTK_TREE_VIEW); 
     GET_GTK(tags_selected_column, GTK_TREE_VIEW_COLUMN);
@@ -105,8 +151,11 @@ main(int argc, char **argv) {
     gtk_tree_view_column_add_attribute(data.file_date_column, data.file_date_renderer, "text", 2);
     gtk_tree_view_column_add_attribute(data.file_tags_column, data.file_tags_renderer, "text", 3);
     
-    gtk_tree_view_column_add_attribute(data.tags_tag_column, data.tags_tag_renderer, "active", 0);
+    gtk_tree_view_column_add_attribute(data.tags_selected_column, data.tags_selected_renderer, "active", 0);
     gtk_tree_view_column_add_attribute(data.tags_tag_column, data.tags_tag_renderer, "text", 1);
+
+    gtk_tree_view_column_add_attribute(data.tagsearch_selected_column, data.tagsearch_selected_renderer, "active", 0);
+    gtk_tree_view_column_add_attribute(data.tagsearch_tag_column, data.tagsearch_tag_renderer, "text", 1);
 
     g_signal_connect(data.window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
@@ -127,6 +176,24 @@ main(int argc, char **argv) {
 }
 
 static void
+display_tags(PdfFile &f, GtkTreeStore *tree_store, GtkTreeIter *iter)
+{
+    std::vector<std::string>& tags = f.getTags();
+
+    std::string tagString = "";
+    auto it = tags.begin();
+
+    while(it != tags.end())
+    {
+        tagString.append(*it++);
+        if(it != tags.end())
+            tagString.append(",");
+    }
+
+    gtk_tree_store_set(tree_store, iter, 3, tagString.c_str(), -1);
+}
+
+static void
 display_files()
 {
     // clear table
@@ -134,21 +201,47 @@ display_files()
 
     for (PdfFile f: PdfFile::getFiles())
     {
+        if(!filter.empty() && !(f.containsTags(filter)))
+            continue; // skip if filter tags are not contained
+
         gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
-
-        std::vector<std::string>& tags = f.getTags();
-
-        std::string tagString = "";
-        auto it = tags.begin();
-
-        while(it != tags.end())
-        {
-            tagString.append(*it++);
-            if(it != tags.end())
-                tagString.append(",");
-        }
         
-        gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, fs::path( f.getFilename() ).filename().c_str(), 1, fs::path( f.getFilename() ).parent_path().c_str(), 2, f.getCreationTime().c_str(), 3, tagString.c_str(), -1);
+        gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, fs::path( f.getFilename() ).filename().c_str(), 1, fs::path( f.getFilename() ).parent_path().c_str(), 2, f.getCreationTime().c_str(), -1);
+        
+        display_tags(f, data.file_treestore, &data.file_tree_iterator);
+    }
+}
+
+static void
+update_tags_table()
+{
+    // clear table
+    gtk_tree_store_clear(data.tags_treestore);
+
+    if(nullptr != selectedFile)
+    {
+        for(std::string tag : PdfFile::getAllAvailableTags())
+        {
+            gtk_tree_store_append(data.tags_treestore, &data.tags_tree_iterator, NULL);
+            gtk_tree_store_set(data.tags_treestore, &data.tags_tree_iterator, 0, selectedFile->containsTag(tag), 1, tag.c_str(), -1);
+        }
+    }
+}
+
+static void
+setup_tagfilter()
+{
+    // clear filter
+    filter.clear();
+
+    // clear table
+    gtk_tree_store_clear(data.tagsearch_treestore);
+
+    // populate table
+    for(std::string tag : PdfFile::getAllAvailableTags())
+    {
+        gtk_tree_store_append(data.tagsearch_treestore, &data.tagsearch_tree_iterator, NULL);
+        gtk_tree_store_set(data.tagsearch_treestore, &data.tagsearch_tree_iterator, 0, FALSE, 1, tag.c_str(), -1);
     }
 }
 
@@ -198,6 +291,7 @@ loadFiles(std::string &path)
 {
     int numFiles = PdfFile::loadPdfFilesFromDir(path);
     display_files();
+    setup_tagfilter();
 
     std::string statusString = "Loaded " + std::to_string(numFiles) + " files.";
 
@@ -234,29 +328,135 @@ GTK_CALLBACK void
 on_file_selection_changed(GtkWidget *w)
 {
     (void)w;
-    gchar *value;
-    GtkTreeIter iter;
-    GtkTreeModel *model;
+    gchar *selected_filename;
+    gchar *selected_dir;
+    char tagsLabel[100];
+
+    std::string fullfilename;
 
     LOG(LOG_INFO, "on_file_selection_changed\n");
 
-    if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(w), &model, &iter) == FALSE)
+    if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(w), &selectedFileModel, &selectedFileIter) == FALSE)
         return;
 
-    gtk_tree_model_get(model, &iter, 0, &value, -1);
-    LOG(LOG_INFO, "col 0 = %s\n", value);
+    gtk_tree_model_get(selectedFileModel, &selectedFileIter, 0, &selected_filename, 1, &selected_dir, -1);
 
-    // clear table
-    gtk_tree_store_clear(data.tags_treestore);
+    fullfilename = selected_dir;
+    fullfilename += "/";
+    fullfilename += selected_filename;
+    LOG(LOG_INFO, "col 0 = %s\n", fullfilename.c_str());
+
+    strcpy(tagsLabel, TAGS_LABEL_STR);
+    strcat(tagsLabel, selected_filename);
+    gtk_label_set_label(data.tags_label, tagsLabel);
+
+    // update selected file
+    selectedFile = PdfFile::getFileByFilename(fullfilename);
 
     // populate tags table
-    for(std::string tag : PdfFile::getAllAvailableTags())
-    {
-        gtk_tree_store_append(data.tags_treestore, &data.tags_tree_iterator, NULL);
-        gtk_tree_store_set(data.tags_treestore, &data.tags_tree_iterator, 0, TRUE, 1, tag, -1);
-    }
-
-    // gtk_tree_model_get(model, &iter, 1, &value, -1);
+    update_tags_table();
 }
 
-// on_tags_selected_renderer_toggled
+GTK_CALLBACK void
+on_tagsearch_selected_renderer_toggled (GtkCellRendererToggle *cell, gchar *path_string) {
+    GtkTreeIter iter;
+    GtkTreeModel *model;
+    gboolean selected = FALSE;
+    char *tag_name;
+    
+    (void)cell;
+
+    LOG(LOG_INFO, "on_tagsearch_selected_renderer_toggled\n");
+    LOG(LOG_INFO, "signal path: %s\n", path_string);
+
+    model = gtk_tree_view_get_model(data.tagsearch_treeview);
+    gtk_tree_model_get_iter_from_string (model, &iter, path_string);
+
+    gtk_tree_model_get(model, &iter, 0, &selected, 1, &tag_name, -1);
+
+    LOG(LOG_INFO, "row text: %s selected: %d\n", tag_name, selected);
+
+    selected = !selected;
+
+    // update filter
+    if(!selected)
+    {
+        auto find_res = std::find(filter.begin(), filter.end(), tag_name);
+        if(find_res != filter.end())
+            filter.erase(find_res);
+    }
+    else
+    {
+        filter.push_back(tag_name);
+    }
+
+    // display files
+    display_files();
+
+    // store new toggle setting
+    gtk_tree_store_set(data.tagsearch_treestore, &iter, 0, selected, -1);
+}
+
+GTK_CALLBACK void
+on_tags_selected_renderer_toggled (GtkCellRendererToggle *cell, gchar *path_string) {
+    GtkTreeIter iter;
+    GtkTreeModel *model;
+    gboolean selected = FALSE;
+    char *tag_name;
+    
+    (void)cell;
+
+    LOG(LOG_INFO, "on_tags_selected_renderer_toggled\n");
+    LOG(LOG_INFO, "signal path: %s\n", path_string);
+
+    model = gtk_tree_view_get_model(data.tags_treeview);
+    gtk_tree_model_get_iter_from_string (model, &iter, path_string);
+
+    gtk_tree_model_get(model, &iter, 0, &selected, 1, &tag_name, -1);
+
+    LOG(LOG_INFO, "row text: %s selected: %d\n", tag_name, selected);
+
+    selected = !selected;
+
+    if(nullptr != selectedFile)
+    {
+        std::string tagStr = tag_name;
+        selectedFile->setTag(tagStr, (bool)selected);
+    }
+
+    update_tags_table();
+
+    // update file-list as it also contains the tags of all files
+    if(nullptr != selectedFile)
+    {
+        display_tags(*selectedFile, data.file_treestore, &selectedFileIter);
+    }
+}
+
+GTK_CALLBACK void
+on_new_tag_button_clicked(GtkButton *b)
+{
+    (void)b;
+    LOG(LOG_INFO, "on_new_tag_button_clicked\n");
+
+    std::string tagStr = gtk_entry_get_text(data.new_tag_entry);
+
+    if(tagStr.empty())
+    {
+        return; // empty tag not allowed
+    }
+
+    if(nullptr != selectedFile)
+    {
+        selectedFile->setTag(tagStr, TRUE);
+    }
+
+    // update tag view
+    update_tags_table();
+
+    // update file-list as it also contains the tags of all files
+    if(nullptr != selectedFile)
+    {
+        display_tags(*selectedFile, data.file_treestore, &selectedFileIter);
+    }
+}
