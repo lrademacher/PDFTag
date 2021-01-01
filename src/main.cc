@@ -93,13 +93,25 @@ update_tags_table();
 int
 main(int argc, char **argv) {
     GError *error = NULL;
+    char uiFilePath[256];
+    ssize_t uiFilePathLen = sizeof(uiFilePath); 
 
     /* Init GTK+ */
     gtk_init(&argc, &argv);
 
+    /* Prepare path to UI File*/
+    int bytes = MIN(readlink("/proc/self/exe", uiFilePath, uiFilePathLen), uiFilePathLen - 1);
+    if(bytes >= 0)
+        uiFilePath[bytes] = '\0';
+
+    char * lastChr = strrchr(uiFilePath, '/');
+    lastChr += 1; 
+    *lastChr = '\0';
+    strcat(uiFilePath, UI_FILE);
+
     // build GUI from glade file
     GtkBuilder *builder = gtk_builder_new();
-    if( ! gtk_builder_add_from_file( builder, UI_FILE, &error ) )
+    if( ! gtk_builder_add_from_file( builder, uiFilePath, &error ) )
     {
         g_warning( "%s", error->message );
         g_free( error );
