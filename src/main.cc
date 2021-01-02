@@ -305,7 +305,7 @@ loadFiles(std::string &path)
     display_files();
     setup_tagfilter();
 
-    std::string statusString = "Loaded " + std::to_string(numFiles) + " files.";
+    std::string statusString = "Loaded " + std::to_string(numFiles) + " files from root directory: " + path;
 
     gtk_label_set_label(data.status_label, statusString.c_str());
 }
