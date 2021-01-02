@@ -131,7 +131,7 @@
     <property name="width_request">1100</property>
     <property name="height_request">374</property>
     <property name="can_focus">False</property>
-    <property name="icon_name">accessories-calculator</property>
+    <property name="icon">icon.png</property>
     <child type="titlebar">
       <placeholder/>
     </child>
@@ -330,7 +330,6 @@
                       <object class="GtkScrolledWindow">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="hscrollbar_policy">never</property>
                         <property name="shadow_type">in</property>
                         <child>
                           <object class="GtkTreeView" id="file_treeview">
@@ -390,7 +389,8 @@
                             </child>
                             <child>
                               <object class="GtkTreeViewColumn" id="file_tags_column">
-                                <property name="sizing">autosize</property>
+                                <property name="resizable">True</property>
+                                <property name="sizing">fixed</property>
                                 <property name="title" translatable="yes">Tags</property>
                                 <property name="clickable">True</property>
                                 <property name="sort_indicator">True</property>
