@@ -28,3 +28,4 @@ PDF tag (keyword) management desktop application
 
 # Issues
 * Make it visible to user that a tag was not applied
+* Bad performance on loading: Maybe only call exiftool once per PDF?

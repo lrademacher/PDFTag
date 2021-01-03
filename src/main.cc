@@ -39,6 +39,7 @@ static struct
     GtkWidget *error_dialog;
 
     GtkLabel *status_label;
+    GtkLabel *file_table_label;
 
     GtkLabel *error_dialog_label;
 
@@ -157,6 +158,7 @@ int main(int argc, char **argv)
     GET_GTK(error_dialog, GTK_WIDGET);
 
     GET_GTK(status_label, GTK_LABEL);
+    GET_GTK(file_table_label, GTK_LABEL);
 
     GET_GTK(error_dialog_label, GTK_LABEL);
 
@@ -254,6 +256,8 @@ display_files()
     // clear table
     gtk_tree_store_clear(data.file_treestore);
 
+    int itemsShown = 0;
+
     for (PdfFile f : PdfFile::getFiles())
     {
         // Tag-based filtering
@@ -277,12 +281,20 @@ display_files()
                 continue; // skip if filter string is not contained
         }
 
+        ++itemsShown;
+
         gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
 
         gtk_tree_store_set(data.file_treestore, &data.file_tree_iterator, 0, fs::path(f.getFilename()).filename().c_str(), 1, fs::path(f.getFilename()).parent_path().c_str(), 2, f.getCreationTime().c_str(), -1);
 
         display_tags(f, data.file_treestore, &data.file_tree_iterator);
     }
+
+    std::string tableLabelText = "File table (";
+    tableLabelText += std::to_string(itemsShown);
+    tableLabelText +=  " items shown)";
+
+    gtk_label_set_text(data.file_table_label, tableLabelText.c_str());
 }
 
 static void
