@@ -911,6 +911,7 @@
                             <signal name="button-press-event" handler="on_file_treeview_button_press_event" swapped="no"/>
                             <child internal-child="selection">
                               <object class="GtkTreeSelection">
+                                <property name="mode">multiple</property>
                                 <signal name="changed" handler="on_file_selection_changed" swapped="no"/>
                               </object>
                             </child>

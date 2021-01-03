@@ -102,9 +102,8 @@ static std::vector<std::string> filter;
 
 static bool untaggedSelected = false;
 
-static PdfFile *selectedFile = nullptr;
+static std::vector<PdfFile*> selectedFiles;
 static GtkTreeIter selectedFileIter;
-static GtkTreeModel *selectedFileModel;
 
 static GtkEntry* activeDateEntry = nullptr;
 
@@ -348,13 +347,21 @@ update_tags_table()
     // clear table
     gtk_tree_store_clear(data.tags_treestore);
 
-    if (nullptr != selectedFile)
+    for (std::string tag : PdfFile::getAllAvailableTags())
     {
-        for (std::string tag : PdfFile::getAllAvailableTags())
+        gtk_tree_store_append(data.tags_treestore, &data.tags_tree_iterator, NULL);
+
+        bool containsTag = false;
+        for (PdfFile* f: selectedFiles)
         {
-            gtk_tree_store_append(data.tags_treestore, &data.tags_tree_iterator, NULL);
-            gtk_tree_store_set(data.tags_treestore, &data.tags_tree_iterator, 0, selectedFile->containsTag(tag), 1, tag.c_str(), -1);
+            /* Check if at least one of the selected files contains the currently looked at tag */
+            if (f->containsTag(tag))
+            {
+                containsTag = true;
+            }
         }
+
+        gtk_tree_store_set(data.tags_treestore, &data.tags_tree_iterator, 0, containsTag, 1, tag.c_str(), -1);
     }
 }
 
@@ -429,53 +436,61 @@ loadFiles(std::string &path)
 static void
 openSelectedPdf()
 {
-    std::string cmdStr;
+    std::string pdfViewer;
 
-    if (!AppSettings::getPdfViewer(cmdStr) || cmdStr.empty())
+    if (!AppSettings::getPdfViewer(pdfViewer) || pdfViewer.empty())
     {
         throw "PdfViewer not defined in settings.";
     }
 
-    if (nullptr == selectedFile)
+    if (selectedFiles.empty())
     {
         throw "No file selected.";
     }
 
-    cmdStr += " \"";
-    cmdStr += selectedFile->getFilename();
-    cmdStr += "\" &";
+    for (PdfFile* selectedFile: selectedFiles)
+    {
+        std::string cmdStr = pdfViewer;
 
-    LOG(LOG_INFO, "executing command %s\n", cmdStr.c_str());
+        cmdStr += " \"";
+        cmdStr += selectedFile->getFilename();
+        cmdStr += "\" &";
 
-    // TODO: Check if pdf-viewer is available
+        LOG(LOG_INFO, "executing command %s\n", cmdStr.c_str());
 
-    system(cmdStr.c_str());
+        // TODO: Check if pdf-viewer is available
+
+        system(cmdStr.c_str());
+    }
 }
 
 static void
 copySelectedPdfTo(std::string &pathString, CopyType ct)
 {
-    std::string cmdStr;
+    for (PdfFile* selectedFile : selectedFiles)
+    {
+        std::string cmdStr;
 
-    if (pathString.empty())
-        return;
+        if (pathString.empty())
+            return;
 
-    if (CopyType::Copy == ct) {
-        cmdStr += "cp \"";
-    } else if (CopyType::Move == ct) {
-        cmdStr += "mv \"";
-    } else {
-        LOG(LOG_ERR, "Unknown copy type %d\n", (int)ct);
-        return;
+        if (CopyType::Copy == ct) {
+            cmdStr += "cp \"";
+        } else if (CopyType::Move == ct) {
+            cmdStr += "mv \"";
+        } else {
+            LOG(LOG_ERR, "Unknown copy type %d\n", (int)ct);
+            return;
+        }
+        cmdStr += selectedFile->getFilename();
+        cmdStr += "\" \"";
+        cmdStr += pathString;
+        cmdStr += "\"";
+
+        LOG(LOG_INFO, "executing command %s\n", cmdStr.c_str());
+
+        system(cmdStr.c_str());
     }
-    cmdStr += selectedFile->getFilename();
-    cmdStr += "\" \"";
-    cmdStr += pathString;
-    cmdStr += "\"";
-
-    LOG(LOG_INFO, "executing command %s\n", cmdStr.c_str());
-
-    system(cmdStr.c_str());
 }
 
 static void
@@ -493,7 +508,7 @@ copy_selected_files(CopyType ct)
 {
     std::string dir;
 
-    if (nullptr == selectedFile)
+    if (selectedFiles.empty())
     {
         raiseError("No file selected.");
         return;
@@ -512,26 +527,29 @@ copy_selected_files(CopyType ct)
 static void 
 copy_selected_files_clipboard(CopyType ct)
 {
-    std::string cmdStr;
-    std::string clipboardContent;
-
-    if (nullptr == selectedFile)
+    if (selectedFiles.empty())
     {
         raiseError("No file selected.");
         return;
     }
 
+    std::string cmdStr;
+    std::string clipboardContent;
+
     if (CopyType::Copy == ct)
     {
-        clipboardContent = "copy\n";
+        clipboardContent = "copy";
     }
     else
     {
-        clipboardContent = "cut\n";
+        clipboardContent = "cut";
     }
-    
-    clipboardContent += "file://";
-    clipboardContent += selectedFile->getFilename();
+
+    for (PdfFile* selectedFile : selectedFiles)
+    {        
+        clipboardContent += "\nfile://";
+        clipboardContent += selectedFile->getFilename();
+    }
 
     cmdStr = "echo -n \"";
     cmdStr += clipboardContent;
@@ -803,22 +821,43 @@ on_error_dialog_close_button_clicked(GtkButton *b)
     gtk_widget_hide(data.error_dialog);
 }
 
+static void addSelectedFile(GtkTreeModel *model,
+		  GtkTreePath *path,
+		  GtkTreeIter *iter,
+		  gpointer data)
+{
+    gchar *selected_filename;
+    gchar *selected_dir;
+    std::string fullfilename;
+    (void)path;
+    (void)data;
+
+    gtk_tree_model_get (model, iter, 0, &selected_filename, 1, &selected_dir, -1);
+
+    fullfilename = selected_dir;
+    fullfilename += "/";
+    fullfilename += selected_filename;
+    LOG(LOG_INFO, "col 0 = %s\n", fullfilename.c_str());
+
+    // update selected file
+    selectedFiles.push_back(PdfFile::getFileByFilename(fullfilename)); 
+}
+
 GTK_CALLBACK void
 on_file_selection_changed(GtkWidget *w)
 {
     (void)w;
-    gchar *selected_filename;
-    gchar *selected_dir;
-
-    std::string fullfilename;
 
     LOG(LOG_INFO, "on_file_selection_changed\n");
 
     std::string tagsLabel = TAGS_LABEL_STR;
 
-    if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(w), &selectedFileModel, &selectedFileIter) == FALSE)
+    gint numSelectedEntries = gtk_tree_selection_count_selected_rows(GTK_TREE_SELECTION(w));
+
+    selectedFiles.clear();
+
+    if (numSelectedEntries == 0)
     {
-        selectedFile = nullptr;
         tagsLabel += "-";
         
         LOG(LOG_INFO, "No file selected\n");
@@ -827,18 +866,14 @@ on_file_selection_changed(GtkWidget *w)
     }
     else
     {
-        gtk_tree_model_get(selectedFileModel, &selectedFileIter, 0, &selected_filename, 1, &selected_dir, -1);
+        gtk_tree_selection_selected_foreach (GTK_TREE_SELECTION(w), addSelectedFile, NULL);  
 
-        fullfilename = selected_dir;
-        fullfilename += "/";
-        fullfilename += selected_filename;
-        LOG(LOG_INFO, "col 0 = %s\n", fullfilename.c_str());
-
-        tagsLabel += selected_filename;
-
-        // update selected file
-        selectedFile = PdfFile::getFileByFilename(fullfilename); 
-
+        tagsLabel += selectedFiles[0]->getFilename();
+        if (selectedFiles.size() > 1)
+        {
+            tagsLabel += " + " + std::to_string(selectedFiles.size() - 1) + " files.";
+        }
+         
         gtk_widget_set_sensitive(data.selected_menu, true);
     }
 
@@ -938,7 +973,7 @@ on_tags_selected_renderer_toggled(GtkCellRendererToggle *cell, gchar *path_strin
 
     selected = !selected;
 
-    if (nullptr != selectedFile)
+    for (PdfFile* selectedFile : selectedFiles)
     {
         std::string tagStr = tag_name;
         selectedFile->setTag(tagStr, (bool)selected);
@@ -947,7 +982,7 @@ on_tags_selected_renderer_toggled(GtkCellRendererToggle *cell, gchar *path_strin
     update_tags_table();
 
     // update file-list as it also contains the tags of all files
-    if (nullptr != selectedFile)
+    for (PdfFile* selectedFile: selectedFiles)
     {
         display_tags(*selectedFile, data.file_treestore, &selectedFileIter);
     }
@@ -966,16 +1001,19 @@ on_new_tag_button_clicked(GtkButton *b)
         return; // empty tag not allowed
     }
 
-    if (nullptr != selectedFile)
+    if (!selectedFiles.empty())
     {
-        selectedFile->setTag(tagStr, TRUE);
+        for (PdfFile* selectedFile: selectedFiles)
+        {
+            selectedFile->setTag(tagStr, TRUE);
+        }
     }
 
     // update tag view
     update_tags_table();
 
     // update file-list as it also contains the tags of all files
-    if (nullptr != selectedFile)
+    for (PdfFile* selectedFile: selectedFiles)
     {
         display_tags(*selectedFile, data.file_treestore, &selectedFileIter);
     }
