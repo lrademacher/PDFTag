@@ -367,16 +367,26 @@ static void
 openSelectedPdf()
 {
     std::string cmdStr;
-    if (AppSettings::getPdfViewer(cmdStr) && !cmdStr.empty() && nullptr != selectedFile)
+
+    if (!AppSettings::getPdfViewer(cmdStr) || cmdStr.empty())
     {
-        cmdStr += " \"";
-        cmdStr += selectedFile->getFilename();
-        cmdStr += "\" &";
-
-        LOG(LOG_INFO, "executing command %s\n", cmdStr.c_str());
-
-        system(cmdStr.c_str());
+        throw "PdfViewer not defined in settings.";
     }
+
+    if(nullptr == selectedFile)
+    {
+        throw "No file selected.";
+    }
+    
+    cmdStr += " \"";
+    cmdStr += selectedFile->getFilename();
+    cmdStr += "\" &";
+
+    LOG(LOG_INFO, "executing command %s\n", cmdStr.c_str());
+
+    // TODO: Check if pdf-viewer is available
+
+    system(cmdStr.c_str());
 }
 
 static void
@@ -434,7 +444,11 @@ on_open_selected_activate(GtkMenuItem *m)
 
     LOG(LOG_INFO, "on_open_selected_activate\n");
 
-    openSelectedPdf();
+    try{
+        openSelectedPdf();
+    } catch (const std::string& msg) {
+        raiseError(msg);
+    }
 }
 
 GTK_CALLBACK void
@@ -506,6 +520,28 @@ on_about_dialog_response(GtkDialog *dialog, gint response_id)
     LOG(LOG_INFO, "on_about_dialog_response\n");
 
     gtk_widget_hide(data.about_dialog);
+}
+
+/* Detect table double-click */
+GTK_CALLBACK gboolean
+on_file_treeview_button_press_event(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+{
+    (void)widget;
+    (void)user_data;
+
+    if(event->type == GDK_DOUBLE_BUTTON_PRESS)
+    {
+        LOG(LOG_INFO, "double-click on table detected\n");
+
+        try{
+            openSelectedPdf();
+        } catch (const char* msg) {
+            raiseError(msg);
+        }
+    }
+        
+    /* pass event to underlying handlers. */
+    return FALSE;
 }
 
 GTK_CALLBACK void

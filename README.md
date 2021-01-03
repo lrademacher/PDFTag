@@ -11,7 +11,6 @@ PDF tag (keyword) management desktop application
 
 # TODO
 ## Table handling
-* Open file with double-click
 * Don't lose selection on filter change as long as the selected item is available in the current filter
 * Support multi-select: gtk_tree_selection_get_selected_rows
 
