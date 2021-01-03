@@ -32,11 +32,15 @@ static struct
 {
     GtkWidget *window;
     GtkWidget *file_chooser;
+    GtkWidget *file_chooser_copy;
     GtkWidget *about_dialog;
     GtkWidget *loading_dialog;
     GtkWidget *settings_dialog;
+    GtkWidget *error_dialog;
 
     GtkLabel *status_label;
+
+    GtkLabel *error_dialog_label;
 
     GtkEntry *new_tag_entry;
 
@@ -104,6 +108,15 @@ setup_tagfilter();
 static void
 update_tags_table();
 
+static void
+openSelectedPdf();
+
+static void 
+copySelectedPdfTo(std::string &pathString);
+
+static void
+raiseError(const std::string &errorString);
+
 /* Implementations */
 
 int main(int argc, char **argv)
@@ -137,11 +150,15 @@ int main(int argc, char **argv)
     // get widgets from builder
     GET_GTK(window, GTK_WIDGET);
     GET_GTK(file_chooser, GTK_WIDGET);
+    GET_GTK(file_chooser_copy, GTK_WIDGET);
     GET_GTK(about_dialog, GTK_WIDGET);
     GET_GTK(loading_dialog, GTK_WIDGET);
     GET_GTK(settings_dialog, GTK_WIDGET);
+    GET_GTK(error_dialog, GTK_WIDGET);
 
     GET_GTK(status_label, GTK_LABEL);
+
+    GET_GTK(error_dialog_label, GTK_LABEL);
 
     GET_GTK(new_tag_entry, GTK_ENTRY);
 
@@ -350,16 +367,45 @@ static void
 openSelectedPdf()
 {
     std::string cmdStr;
-    if(AppSettings::getPdfViewer(cmdStr) && !cmdStr.empty() && nullptr != selectedFile)
+    if (AppSettings::getPdfViewer(cmdStr) && !cmdStr.empty() && nullptr != selectedFile)
     {
         cmdStr += " \"";
         cmdStr += selectedFile->getFilename();
         cmdStr += "\" &";
 
         LOG(LOG_INFO, "executing command %s\n", cmdStr.c_str());
-        
+
         system(cmdStr.c_str());
     }
+}
+
+static void
+copySelectedPdfTo(std::string &pathString)
+{
+    std::string cmdStr;
+
+    if (pathString.empty())
+        return;
+
+    cmdStr += "cp \"";
+    cmdStr += selectedFile->getFilename();
+    cmdStr += "\" \"";
+    cmdStr += pathString;
+    cmdStr += "\"";
+
+    LOG(LOG_INFO, "executing command %s\n", cmdStr.c_str());
+
+    system(cmdStr.c_str());
+}
+
+static void
+raiseError(const std::string &errorString)
+{
+    std::string displayString = "Error: " + errorString;
+
+    gtk_label_set_text(data.error_dialog_label, displayString.c_str());
+
+    gtk_widget_show(data.error_dialog);
 }
 
 /* ************* GTK SIGNAL HANDLERS ******************* */
@@ -394,9 +440,24 @@ on_open_selected_activate(GtkMenuItem *m)
 GTK_CALLBACK void
 on_save_selected_activate(GtkMenuItem *m)
 {
+    std::string dir;
+
     (void)m;
 
     LOG(LOG_INFO, "on_save_selected_activate\n");
+
+    if(nullptr == selectedFile)
+    {
+        raiseError("No file selected.");
+        return;
+    }
+
+    if (AppSettings::getWorkingDirectory(dir))
+    {
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(data.file_chooser_copy), dir.c_str());
+    }
+
+    gtk_widget_show(data.file_chooser_copy);
 }
 
 GTK_CALLBACK void
@@ -476,6 +537,31 @@ on_file_chooser_cancel_button_clicked(GtkButton *b)
 }
 
 GTK_CALLBACK void
+on_file_chooser_copy_cancel_button_clicked(GtkButton *b)
+{
+    (void)b;
+
+    LOG(LOG_INFO, "on_file_chooser_copy_cancel_button_clicked\n");
+
+    gtk_widget_hide(data.file_chooser_copy);
+}
+
+GTK_CALLBACK void
+on_file_chooser_copy_ok_button_clicked(GtkButton *b)
+{
+    (void)b;
+
+    LOG(LOG_INFO, "on_file_chooser_copy_ok_button_clicked\n");
+
+    std::string pathString(gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(data.file_chooser_copy)));
+    LOG(LOG_INFO, "directory %s chosen\n", pathString.c_str());
+
+    copySelectedPdfTo(pathString);
+
+    gtk_widget_hide(data.file_chooser_copy);
+}
+
+GTK_CALLBACK void
 on_settings_save_clicked(GtkButton *b)
 {
     (void)b;
@@ -500,6 +586,16 @@ on_settings_cancel_clicked(GtkButton *b)
     LOG(LOG_INFO, "on_settings_cancel_clicked\n");
 
     gtk_widget_hide(data.settings_dialog);
+}
+
+GTK_CALLBACK void
+on_error_dialog_close_button_clicked(GtkButton *b)
+{
+    (void)b;
+
+    LOG(LOG_INFO, "on_error_dialog_close_button_clicked\n");
+
+    gtk_widget_hide(data.error_dialog);
 }
 
 GTK_CALLBACK void
