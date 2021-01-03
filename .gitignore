@@ -33,3 +33,5 @@
 
 # CMake build dir
 build/
+
+*.glade~
