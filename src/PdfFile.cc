@@ -11,6 +11,7 @@
 #include "Logging.h"
 
 #include <stdexcept>
+#include <sstream> 
 
 /* Defines/Macros */
 #define EXIF_TOOL_READ_STR "exiftool -Keywords "
@@ -19,10 +20,13 @@
 
 #define FIND_COMMAND "/usr/bin/find "
 #define FIND_EXPRESSION_PDF " -iname \"*.pdf\""
+#define FIND_COUNT_EXTENSION " | wc -l"
 
 /* Variables */
 std::vector<std::string> PdfFile::AvailableTags;
 std::vector<PdfFile> PdfFile::Files;
+FILE *PdfFile::loadingFp;
+int PdfFile::numFilesToLoad;
 
 /* Implementation */
 PdfFile::PdfFile(std::string &path)
@@ -201,19 +205,18 @@ PdfFile* PdfFile::getFileByFilename(std::string filename)
     return nullptr;
 }
 
-int PdfFile::loadPdfFilesFromDir(std::string &path)
+int PdfFile::getNumPdfInDir(std::string &path)
 {
     FILE *fp;
-    char find_result_line[1024];
     std::string cmd;
-
-    // clear old filelist
-    Files.clear();
+    char result_line[1024];
+    int numPdf;
 
     // assemble command
     cmd = FIND_COMMAND;
     cmd += path;
     cmd += FIND_EXPRESSION_PDF;
+    cmd += FIND_COUNT_EXTENSION;
 
     LOG(LOG_INFO, "executing command: %s\n", cmd.c_str());   
 
@@ -225,7 +228,54 @@ int PdfFile::loadPdfFilesFromDir(std::string &path)
     }
 
     // Read the output a line at a time - output it.
-    while (fgets(find_result_line, sizeof(find_result_line), fp) != NULL) {
+    while (fgets(result_line, sizeof(result_line), fp) != NULL) {
+        // Do nothing. We are just interested in the last line
+    }
+
+    std::string numPdfStr = result_line;
+    std::stringstream numPdfStrStream(numPdfStr); 
+
+    numPdfStrStream >> numPdf;
+
+    return numPdf;
+}
+
+bool PdfFile::beginLoadPdfFilesFromDir(std::string &path)
+{
+    std::string cmd;
+
+    // clear old filelist
+    Files.clear();
+
+    numFilesToLoad = getNumPdfInDir(path);
+
+    // assemble command
+    cmd = FIND_COMMAND;
+    cmd += path;
+    cmd += FIND_EXPRESSION_PDF;
+
+    LOG(LOG_INFO, "executing command: %s\n", cmd.c_str());   
+
+    // Open the command for reading.
+    loadingFp = popen(cmd.c_str(), "r");
+    if (loadingFp == NULL) {
+        printf("Failed to run command\n" );
+        return false;
+    }
+    return true;
+}
+
+bool PdfFile::loadPdfFilesFromDirIncrement(float &loadingCompleteFraction)
+{
+    bool complete = false;
+
+    char find_result_line[1024];
+    
+    int numFilesLoaded;
+   
+
+    // Read the output a line at a time - output it.
+    if (fgets(find_result_line, sizeof(find_result_line), loadingFp) != NULL) {
         // remove trailing newline
         char *pos;
         if ((pos=strchr(find_result_line, '\n')) != NULL)
@@ -235,14 +285,26 @@ int PdfFile::loadPdfFilesFromDir(std::string &path)
 
         Files.push_back(filepath);
     }
+    else
+    {
+        complete = true;
+    }
 
-    LOG(LOG_INFO, "found %d files\n", (int)Files.size());   
+    numFilesLoaded = (int)Files.size();    
 
-    pclose(fp);
+    LOG(LOG_INFO, "Loaded %d of %d files\n", numFilesLoaded, numFilesToLoad);   
 
-    updateAvailableTags();
+    loadingCompleteFraction = (float)numFilesLoaded / (float)numFilesToLoad;
 
-    return (int)Files.size();
+    if(complete)
+    {   
+        /* finalize */
+        pclose(loadingFp);
+
+        updateAvailableTags();
+    }
+
+    return complete;
 }
 
 void PdfFile::updateAvailableTags()

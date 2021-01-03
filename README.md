@@ -16,6 +16,7 @@ This software uses std::filesystem, so a gcc with C++17 support shall be used.
 * Integrate into deb package management to resolve dependencies and make installation easy
 * Add persistency of working directory
 * Improve filtering: Can we just deactivate entries in table?
+* Port to gtkmm
 
 # Issues
 * Big file lists (~270 PDFs) tags filtering => Stack overflow

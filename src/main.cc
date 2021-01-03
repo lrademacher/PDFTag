@@ -29,8 +29,14 @@ static struct
     GtkWidget               *window;
     GtkWidget               *file_chooser;
     GtkWidget               *about_dialog;
+    GtkWidget               *loading_dialog;
+
     GtkLabel                *status_label;
+
     GtkEntry                *new_tag_entry;
+
+    GtkProgressBar          *loading_progress_bar;
+    GtkLabel                *loading_dialog_label;
 
     GtkTreeStore            *file_treestore;
     GtkTreeView             *file_treeview;
@@ -122,10 +128,14 @@ main(int argc, char **argv) {
     GET_GTK(window, GTK_WIDGET);
     GET_GTK(file_chooser, GTK_WIDGET);
     GET_GTK(about_dialog, GTK_WIDGET);
+    GET_GTK(loading_dialog, GTK_WIDGET);
     
     GET_GTK(status_label, GTK_LABEL);
 
     GET_GTK(new_tag_entry, GTK_ENTRY);
+
+    GET_GTK(loading_progress_bar, GTK_PROGRESS_BAR);
+    GET_GTK(loading_dialog_label, GTK_LABEL);
 
     GET_GTK(file_treestore, GTK_TREE_STORE);
     GET_GTK(file_treeview, GTK_TREE_VIEW);
@@ -301,13 +311,41 @@ on_about_dialog_response(GtkDialog *dialog, gint response_id)
 static void
 loadFiles(std::string &path)
 {
-    int numFiles = PdfFile::loadPdfFilesFromDir(path);
+    bool loadingOkay;
+    bool loadingCompleted = false;
+    float loadingCompleteFraction = 0.0f;
+
+    gtk_widget_show(data.loading_dialog);
+
+    loadingOkay = PdfFile::beginLoadPdfFilesFromDir(path);
+
+    std::string dialogStr = "Loading PDF files from directory: ";
+    dialogStr += path;
+
+    gtk_label_set_text(data.loading_dialog_label, dialogStr.c_str());
+
+    if(loadingOkay)
+    {
+        do {
+            loadingCompleted = PdfFile::loadPdfFilesFromDirIncrement(loadingCompleteFraction);
+
+            gtk_progress_bar_set_fraction(data.loading_progress_bar, loadingCompleteFraction);
+
+            /* --- Repaint any windows - like the progress bar --- */
+            while (gtk_events_pending ()) {
+                gtk_main_iteration ();
+            }
+        } while (!loadingCompleted);
+    }
+
     display_files();
     setup_tagfilter();
 
-    std::string statusString = "Loaded " + std::to_string(numFiles) + " files from root directory: " + path;
+    std::string statusString = "Loaded " + std::to_string(PdfFile::getFiles().size()) + " files from root directory: " + path;
 
     gtk_label_set_label(data.status_label, statusString.c_str());
+
+    gtk_widget_hide(data.loading_dialog);
 }
 
 GTK_CALLBACK void

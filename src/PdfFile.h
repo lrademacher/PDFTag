@@ -18,7 +18,9 @@ public:
     static std::vector<PdfFile>& getFiles();
     static PdfFile* getFileByFilename(std::string filename);
 
-    static int loadPdfFilesFromDir(std::string &path);
+    static bool beginLoadPdfFilesFromDir(std::string &path);
+    static bool loadPdfFilesFromDirIncrement(float &loadingCompleteFraction);
+
     static std::vector<std::string>& getAllAvailableTags();
 private:
     // empty constructor not allowed
@@ -28,6 +30,7 @@ private:
     void readTags(std::string &filepath);
 
     static void updateAvailableTags();
+    static int getNumPdfInDir(std::string &path);
 
     std::string mFilename;
     std::string mCreationTime;
@@ -37,6 +40,9 @@ private:
     static std::vector<PdfFile> Files;
 
     static std::vector<std::string> AvailableTags;
+
+    static FILE *loadingFp;
+    static int numFilesToLoad;
 };
 
 #endif
