@@ -21,6 +21,7 @@ PDF tag (keyword) management desktop application
 * Sorted tag list
 * search query in tag list
 * only display <untagged> in case there are actually untagged PDFs?
+* Add selector for AND/OR combination of tags
 
 ## Other
 * Integrate into deb package management to resolve dependencies and make installation easy
