@@ -610,3 +610,22 @@ on_file_search_search_changed(GtkSearchEntry *e)
     // display files
     display_files();
 }
+
+GTK_CALLBACK gboolean
+hide_instead_of_delete(GtkWidget *widget)
+{
+    LOG(LOG_INFO, "hide_instead_of_delete\n");
+
+    gtk_widget_hide(widget);
+    return TRUE;
+}
+
+GTK_CALLBACK gboolean
+do_not_delete(GtkWidget *widget)
+{
+    (void)widget;
+
+    LOG(LOG_INFO, "do_not_delete\n");
+
+    return TRUE;
+}

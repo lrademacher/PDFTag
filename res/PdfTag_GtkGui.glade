@@ -5,11 +5,11 @@
   <object class="GtkAboutDialog" id="about_dialog">
     <property name="can_focus">False</property>
     <property name="type_hint">dialog</property>
-    <property name="deletable">False</property>
     <property name="program_name">PDFTag</property>
     <property name="copyright" translatable="yes">Lars Rademacher</property>
     <property name="logo_icon_name">edit-find</property>
     <property name="license_type">gpl-3-0</property>
+    <signal name="delete-event" handler="hide_instead_of_delete" swapped="no"/>
     <signal name="response" handler="on_about_dialog_response" swapped="no"/>
     <child type="titlebar">
       <placeholder/>
@@ -44,8 +44,8 @@
   <object class="GtkFileChooserDialog" id="file_chooser">
     <property name="can_focus">False</property>
     <property name="type_hint">dialog</property>
-    <property name="deletable">False</property>
     <property name="action">select-folder</property>
+    <signal name="delete-event" handler="hide_instead_of_delete" swapped="no"/>
     <child type="titlebar">
       <placeholder/>
     </child>
@@ -117,6 +117,7 @@
     <property name="can_focus">False</property>
     <property name="type_hint">dialog</property>
     <property name="deletable">False</property>
+    <signal name="delete-event" handler="do_not_delete" swapped="no"/>
     <child type="titlebar">
       <placeholder/>
     </child>
