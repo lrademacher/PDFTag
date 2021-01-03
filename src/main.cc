@@ -316,6 +316,24 @@ on_FileOpen_activate(GtkMenuItem *m)
 }
 
 GTK_CALLBACK void
+on_open_selected_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_open_selected_activate\n");
+
+    system("evince \"/home/lars/Nextcloud.Webo/Dokumente/Scans/AAATEST.pdf\"");
+}
+
+GTK_CALLBACK void
+on_save_selected_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_save_selected_activate\n");
+}
+
+GTK_CALLBACK void
 on_FileQuit_activate(GtkMenuItem *m)
 {
     (void)m;

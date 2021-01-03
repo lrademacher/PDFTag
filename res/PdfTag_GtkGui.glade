@@ -240,6 +240,23 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkMenuItem" id="open_selected">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Open selected</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_open_selected_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="save_selected">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Copy selected</property>
+                        <signal name="activate" handler="on_save_selected_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkSeparatorMenuItem">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>

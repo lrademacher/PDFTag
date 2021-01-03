@@ -8,6 +8,7 @@ This software uses std::filesystem, so a gcc with C++17 support shall be used.
 # TODO
 ## Table handling
 * Don't lose selection on filter change as long as the selected item is available in the current filter
+* Support multi-select: gtk_tree_selection_get_selected_rows
 * Open all selected PDFs
 * Copy all selected PDFs in a directory
 ## Filtering
