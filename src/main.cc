@@ -34,6 +34,7 @@ static struct
     GtkWidget *file_chooser;
     GtkWidget *about_dialog;
     GtkWidget *loading_dialog;
+    GtkWidget *settings_dialog;
 
     GtkLabel *status_label;
 
@@ -41,6 +42,8 @@ static struct
 
     GtkProgressBar *loading_progress_bar;
     GtkLabel *loading_dialog_label;
+
+    GtkEntry *pdf_viewer_entry;
 
     GtkTreeStore *file_treestore;
     GtkTreeView *file_treeview;
@@ -136,6 +139,7 @@ int main(int argc, char **argv)
     GET_GTK(file_chooser, GTK_WIDGET);
     GET_GTK(about_dialog, GTK_WIDGET);
     GET_GTK(loading_dialog, GTK_WIDGET);
+    GET_GTK(settings_dialog, GTK_WIDGET);
 
     GET_GTK(status_label, GTK_LABEL);
 
@@ -143,6 +147,8 @@ int main(int argc, char **argv)
 
     GET_GTK(loading_progress_bar, GTK_PROGRESS_BAR);
     GET_GTK(loading_dialog_label, GTK_LABEL);
+
+    GET_GTK(pdf_viewer_entry, GTK_ENTRY);
 
     GET_GTK(file_treestore, GTK_TREE_STORE);
     GET_GTK(file_treeview, GTK_TREE_VIEW);
@@ -298,72 +304,6 @@ setup_tagfilter()
     gtk_tree_store_set(data.tagsearch_treestore, &data.tagsearch_tree_iterator, 0, FALSE, 1, TAGSFILTER_UNTAGGED, -1);
 }
 
-GTK_CALLBACK void
-on_FileOpen_activate(GtkMenuItem *m)
-{
-    std::string dir;
-
-    (void)m;
-
-    LOG(LOG_INFO, "on_FileOpen_activate\n");
-
-    if (AppSettings::getWorkingDirectory(dir))
-    {
-        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(data.file_chooser), dir.c_str());
-    }
-
-    gtk_widget_show(data.file_chooser);
-}
-
-GTK_CALLBACK void
-on_open_selected_activate(GtkMenuItem *m)
-{
-    (void)m;
-
-    LOG(LOG_INFO, "on_open_selected_activate\n");
-
-    system("evince \"/home/lars/Nextcloud.Webo/Dokumente/Scans/AAATEST.pdf\"");
-}
-
-GTK_CALLBACK void
-on_save_selected_activate(GtkMenuItem *m)
-{
-    (void)m;
-
-    LOG(LOG_INFO, "on_save_selected_activate\n");
-}
-
-GTK_CALLBACK void
-on_FileQuit_activate(GtkMenuItem *m)
-{
-    (void)m;
-
-    LOG(LOG_INFO, "on_FileQuit_activate\n");
-
-    gtk_main_quit();
-}
-
-GTK_CALLBACK void
-on_HelpAbout_activate(GtkMenuItem *m)
-{
-    (void)m;
-
-    LOG(LOG_INFO, "on_HelpAbout_activate\n");
-
-    gtk_widget_show(data.about_dialog);
-}
-
-GTK_CALLBACK void
-on_about_dialog_response(GtkDialog *dialog, gint response_id)
-{
-    (void)dialog;
-    (void)response_id;
-
-    LOG(LOG_INFO, "on_about_dialog_response\n");
-
-    gtk_widget_hide(data.about_dialog);
-}
-
 static void
 loadFiles(std::string &path)
 {
@@ -406,6 +346,107 @@ loadFiles(std::string &path)
     gtk_widget_hide(data.loading_dialog);
 }
 
+static void
+openSelectedPdf()
+{
+    std::string cmdStr;
+    if(AppSettings::getPdfViewer(cmdStr) && !cmdStr.empty() && nullptr != selectedFile)
+    {
+        cmdStr += " \"";
+        cmdStr += selectedFile->getFilename();
+        cmdStr += "\" &";
+
+        LOG(LOG_INFO, "executing command %s\n", cmdStr.c_str());
+        
+        system(cmdStr.c_str());
+    }
+}
+
+/* ************* GTK SIGNAL HANDLERS ******************* */
+
+GTK_CALLBACK void
+on_FileOpen_activate(GtkMenuItem *m)
+{
+    std::string dir;
+
+    (void)m;
+
+    LOG(LOG_INFO, "on_FileOpen_activate\n");
+
+    if (AppSettings::getWorkingDirectory(dir))
+    {
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(data.file_chooser), dir.c_str());
+    }
+
+    gtk_widget_show(data.file_chooser);
+}
+
+GTK_CALLBACK void
+on_open_selected_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_open_selected_activate\n");
+
+    openSelectedPdf();
+}
+
+GTK_CALLBACK void
+on_save_selected_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_save_selected_activate\n");
+}
+
+GTK_CALLBACK void
+on_FileQuit_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_FileQuit_activate\n");
+
+    gtk_main_quit();
+}
+
+GTK_CALLBACK void
+on_preferences_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_preferences_activate\n");
+
+    std::string pdfViewer;
+    if (!AppSettings::getPdfViewer(pdfViewer))
+    {
+        pdfViewer = "";
+    }
+    gtk_entry_set_text(data.pdf_viewer_entry, pdfViewer.c_str());
+
+    gtk_widget_show(data.settings_dialog);
+}
+
+GTK_CALLBACK void
+on_HelpAbout_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_HelpAbout_activate\n");
+
+    gtk_widget_show(data.about_dialog);
+}
+
+GTK_CALLBACK void
+on_about_dialog_response(GtkDialog *dialog, gint response_id)
+{
+    (void)dialog;
+    (void)response_id;
+
+    LOG(LOG_INFO, "on_about_dialog_response\n");
+
+    gtk_widget_hide(data.about_dialog);
+}
+
 GTK_CALLBACK void
 on_file_chooser_ok_button_clicked(GtkButton *b)
 {
@@ -432,6 +473,33 @@ on_file_chooser_cancel_button_clicked(GtkButton *b)
     LOG(LOG_INFO, "on_file_chooser_cancel_button_clicked\n");
 
     gtk_widget_hide(data.file_chooser);
+}
+
+GTK_CALLBACK void
+on_settings_save_clicked(GtkButton *b)
+{
+    (void)b;
+
+    LOG(LOG_INFO, "on_settings_save_clicked\n");
+
+    std::string pdfEditor = gtk_entry_get_text(data.pdf_viewer_entry);
+
+    if (!pdfEditor.empty())
+    {
+        AppSettings::setPdfViewer(pdfEditor);
+    }
+
+    gtk_widget_hide(data.settings_dialog);
+}
+
+GTK_CALLBACK void
+on_settings_cancel_clicked(GtkButton *b)
+{
+    (void)b;
+
+    LOG(LOG_INFO, "on_settings_cancel_clicked\n");
+
+    gtk_widget_hide(data.settings_dialog);
 }
 
 GTK_CALLBACK void
@@ -487,7 +555,7 @@ on_tagsearch_selected_renderer_toggled(GtkCellRendererToggle *cell, gchar *path_
 
     LOG(LOG_INFO, "row text: %s selected: %d\n", tag_name, selected);
 
-    if ( 0 == strcmp(tag_name, TAGSFILTER_UNTAGGED) )
+    if (0 == strcmp(tag_name, TAGSFILTER_UNTAGGED))
     {
         selected = !selected;
         untaggedSelected = selected;
@@ -510,7 +578,7 @@ on_tagsearch_selected_renderer_toggled(GtkCellRendererToggle *cell, gchar *path_
     else
     {
         // In case untagged is selected, other tags must not be selected
-        if(untaggedSelected)
+        if (untaggedSelected)
             return;
 
         selected = !selected;

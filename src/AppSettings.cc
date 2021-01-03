@@ -11,47 +11,71 @@ namespace fs = std::filesystem;
 #include <sys/types.h>
 #include <pwd.h>
 
+/* Defines/Macros */
 #define SETTINGS_DIR "/.PDFTag/"
 #define WDIR_FILE "wdir"
+#define PDFEDIT_FILE "pdfeditor"
 
-bool AppSettings::getWorkingDirectory(std::string &dir)
+/* Implementation */
+
+bool AppSettings::getWorkingDirectory(std::string &val)
+{
+    return getSetting(WDIR_FILE, val);
+}
+
+void AppSettings::setWorkingDirectory(std::string &val)
+{
+    setSetting(WDIR_FILE, val);
+}
+
+bool AppSettings::getPdfViewer(std::string &val)
+{
+    return getSetting(PDFEDIT_FILE, val);
+}
+
+void AppSettings::setPdfViewer(std::string &val)
+{
+    setSetting(PDFEDIT_FILE, val);
+}
+
+bool AppSettings::getSetting(const std::string &settingFile, std::string &settingVal)
 {
     bool success = false;
 
     std::string wdirFilePath = getHomeDir();
     wdirFilePath += SETTINGS_DIR;
-    wdirFilePath += WDIR_FILE;
+    wdirFilePath += settingFile;
 
-    if ( fs::exists(wdirFilePath) )
+    if (fs::exists(wdirFilePath))
     {
         std::ifstream ifs(wdirFilePath);
-        
-        ifs >> dir;
+
+        ifs >> settingVal;
         success = true;
     }
 
     return success;
 }
 
-void AppSettings::setWorkingDirectory(std::string &dir)
+void AppSettings::setSetting(const std::string &settingFile, std::string &settingVal)
 {
     std::string wdirFilePath = getHomeDir();
     wdirFilePath += SETTINGS_DIR;
 
-    // ensure the directory exists:
-    if ( !fs::exists(wdirFilePath) )
+    // ensure the directory exists
+    if (!fs::exists(wdirFilePath))
     {
         fs::create_directory(wdirFilePath);
     }
-    
-    wdirFilePath += WDIR_FILE;
+
+    wdirFilePath += settingFile;
 
     std::ofstream ofs(wdirFilePath);
 
-    ofs << dir;
+    ofs << settingVal;
 }
 
-const char* AppSettings::getHomeDir()
+const char *AppSettings::getHomeDir()
 {
     struct passwd *pw = getpwuid(getuid());
 
