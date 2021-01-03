@@ -4,6 +4,7 @@
 #include "PdfFile.h"
 #include "Logging.h"
 #include "AppSettings.h"
+#include "Util.h"
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -73,6 +74,7 @@ static struct
     GtkTreeIter tags_tree_iterator;
 } data;
 
+std::string searchTextStr;
 std::vector<std::string> filter;
 
 PdfFile *selectedFile = nullptr;
@@ -227,8 +229,18 @@ display_files()
 
     for (PdfFile f : PdfFile::getFiles())
     {
+        // Tag-based filtering
         if (!filter.empty() && !(f.containsTags(filter)))
             continue; // skip if filter tags are not contained
+
+        // String-based filtering
+        if(!searchTextStr.empty())
+        {
+            std::string currentFilename = fs::path(f.getFilename()).filename().string();
+            Util::tolower(currentFilename);
+            if(currentFilename.find(searchTextStr) == std::string::npos)
+                continue; // skip if filter string is not contained
+        }  
 
         gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
 
@@ -526,4 +538,15 @@ on_new_tag_button_clicked(GtkButton *b)
     {
         display_tags(*selectedFile, data.file_treestore, &selectedFileIter);
     }
+}
+
+GTK_CALLBACK void
+on_file_search_search_changed(GtkSearchEntry *e)
+{
+    const char* searchText = gtk_entry_get_text(GTK_ENTRY(e));
+    searchTextStr = searchText;
+    Util::tolower(searchTextStr);
+
+    // display files
+    display_files();
 }

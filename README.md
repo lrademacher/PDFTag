@@ -16,6 +16,8 @@ This software uses std::filesystem, so a gcc with C++17 support shall be used.
 * Date-based filter
 * Add special filter <untagged>
 * Improve filtering: Can we just deactivate entries in table?
+* Sorted tag list
+* search query in tag list
 ## Other
 * Integrate into deb package management to resolve dependencies and make installation easy
 * Port to gtkmm
