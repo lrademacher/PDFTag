@@ -2,11 +2,16 @@
 PDF tag (keyword) management desktop application
 
 # Dependencies
-libimage-exiftool-perl for PDF metadata modification
-This software uses std::filesystem, so a gcc with C++17 support shall be used.
+* libimage-exiftool-perl for PDF metadata modification
+* This software uses std::filesystem, so a gcc with C++17 support shall be used.
+* find
+* wc
+* cp
+
 
 # TODO
 ## Table handling
+* Open file with double-click
 * Don't lose selection on filter change as long as the selected item is available in the current filter
 * Support multi-select: gtk_tree_selection_get_selected_rows
 
@@ -17,6 +22,7 @@ This software uses std::filesystem, so a gcc with C++17 support shall be used.
 * Sorted tag list
 * search query in tag list
 * only display <untagged> in case there are actually untagged PDFs?
+
 ## Other
 * Integrate into deb package management to resolve dependencies and make installation easy
 * Port to gtkmm
