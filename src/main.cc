@@ -23,6 +23,8 @@ namespace fs = std::filesystem;
 
 #define TAGS_LABEL_STR "Tags of File: "
 
+#define TAGSFILTER_UNTAGGED "<untagged>"
+
 /* Types */
 
 /* Variables */
@@ -74,12 +76,14 @@ static struct
     GtkTreeIter tags_tree_iterator;
 } data;
 
-std::string searchTextStr;
-std::vector<std::string> filter;
+static std::string searchTextStr;
+static std::vector<std::string> filter;
 
-PdfFile *selectedFile = nullptr;
-GtkTreeIter selectedFileIter;
-GtkTreeModel *selectedFileModel;
+static bool untaggedSelected = false;
+
+static PdfFile *selectedFile = nullptr;
+static GtkTreeIter selectedFileIter;
+static GtkTreeModel *selectedFileModel;
 
 /* Prototypes */
 static void
@@ -230,17 +234,25 @@ display_files()
     for (PdfFile f : PdfFile::getFiles())
     {
         // Tag-based filtering
-        if (!filter.empty() && !(f.containsTags(filter)))
-            continue; // skip if filter tags are not contained
+        if (untaggedSelected)
+        {
+            if (!f.getTags().empty())
+                continue; // skip for all non-empty tags-lists
+        }
+        else
+        {
+            if (!filter.empty() && !(f.containsTags(filter)))
+                continue; // skip if filter tags are not contained
+        }
 
         // String-based filtering
-        if(!searchTextStr.empty())
+        if (!searchTextStr.empty())
         {
             std::string currentFilename = fs::path(f.getFilename()).filename().string();
             Util::tolower(currentFilename);
-            if(currentFilename.find(searchTextStr) == std::string::npos)
+            if (currentFilename.find(searchTextStr) == std::string::npos)
                 continue; // skip if filter string is not contained
-        }  
+        }
 
         gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
 
@@ -281,6 +293,9 @@ setup_tagfilter()
         gtk_tree_store_append(data.tagsearch_treestore, &data.tagsearch_tree_iterator, NULL);
         gtk_tree_store_set(data.tagsearch_treestore, &data.tagsearch_tree_iterator, 0, FALSE, 1, tag.c_str(), -1);
     }
+
+    gtk_tree_store_append(data.tagsearch_treestore, &data.tagsearch_tree_iterator, NULL);
+    gtk_tree_store_set(data.tagsearch_treestore, &data.tagsearch_tree_iterator, 0, FALSE, 1, TAGSFILTER_UNTAGGED, -1);
 }
 
 GTK_CALLBACK void
@@ -454,25 +469,52 @@ on_tagsearch_selected_renderer_toggled(GtkCellRendererToggle *cell, gchar *path_
 
     LOG(LOG_INFO, "row text: %s selected: %d\n", tag_name, selected);
 
-    selected = !selected;
-
-    // update filter
-    if (!selected)
+    if ( 0 == strcmp(tag_name, TAGSFILTER_UNTAGGED) )
     {
-        auto find_res = std::find(filter.begin(), filter.end(), tag_name);
-        if (find_res != filter.end())
-            filter.erase(find_res);
+        selected = !selected;
+        untaggedSelected = selected;
+
+        if (untaggedSelected)
+        {
+            // clear tag filter list as untagged is a special filter which does not allow tag-filtering
+            filter.clear();
+
+            GtkTreeIter iter;
+            bool valid = gtk_tree_model_get_iter_first(model, &iter);
+
+            while (valid)
+            {
+                gtk_tree_store_set(data.tagsearch_treestore, &iter, 0, FALSE, -1);
+                valid = gtk_tree_model_iter_next(model, &iter);
+            }
+        }
     }
     else
     {
-        filter.push_back(tag_name);
-    }
+        // In case untagged is selected, other tags must not be selected
+        if(untaggedSelected)
+            return;
 
-    // display files
-    display_files();
+        selected = !selected;
+
+        // update filter
+        if (!selected)
+        {
+            auto find_res = std::find(filter.begin(), filter.end(), tag_name);
+            if (find_res != filter.end())
+                filter.erase(find_res);
+        }
+        else
+        {
+            filter.push_back(tag_name);
+        }
+    }
 
     // store new toggle setting
     gtk_tree_store_set(data.tagsearch_treestore, &iter, 0, selected, -1);
+
+    // display files
+    display_files();
 }
 
 GTK_CALLBACK void
@@ -543,7 +585,7 @@ on_new_tag_button_clicked(GtkButton *b)
 GTK_CALLBACK void
 on_file_search_search_changed(GtkSearchEntry *e)
 {
-    const char* searchText = gtk_entry_get_text(GTK_ENTRY(e));
+    const char *searchText = gtk_entry_get_text(GTK_ENTRY(e));
     searchTextStr = searchText;
     Util::tolower(searchTextStr);
 

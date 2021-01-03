@@ -12,10 +12,8 @@ This software uses std::filesystem, so a gcc with C++17 support shall be used.
 * Copy all selected PDFs in a directory
 ## Filtering
 * Update Tag-filter list in case AvailableTags changes (new tag added, tag removed from all files)
-* String-based filter
 * Date-based filter
-* Add special filter <untagged>
-* Improve filtering: Can we just deactivate entries in table?
+* Improve filtering: Can we just deactivate entries in table? (gtk_tree_model_filter_set_visible_func ?)
 * Sorted tag list
 * search query in tag list
 ## Other
@@ -24,3 +22,4 @@ This software uses std::filesystem, so a gcc with C++17 support shall be used.
 
 # Issues
 * Big file lists (~270 PDFs) tags filtering => Stack overflow
+* Make it visible to user that a tag was not applied
