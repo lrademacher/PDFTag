@@ -27,5 +27,4 @@ PDF tag (keyword) management desktop application
 * Port to gtkmm
 
 # Issues
-* Big file lists (~270 PDFs) tags filtering => Stack overflow
 * Make it visible to user that a tag was not applied

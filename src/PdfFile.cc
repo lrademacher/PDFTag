@@ -14,9 +14,10 @@
 #include <sstream> 
 
 /* Defines/Macros */
-#define EXIF_TOOL_READ_STR "exiftool -Keywords "
-#define EXIF_TOOL_ADD_STR "exiftool -Keywords+="
-#define EXIF_TOOL_REMOVE_STR "exiftool -Keywords-="
+#define EXIF_TOOL_READTAGS_STR "exiftool -Keywords "
+#define EXIF_TOOL_ADDTAGS_STR "exiftool -Keywords+="
+#define EXIF_TOOL_REMOVETAGS_STR "exiftool -Keywords-="
+#define EXIF_TOOL_READCREATIONDATE_STR "exiftool -createdate "
 
 #define FIND_COMMAND "/usr/bin/find "
 #define FIND_EXPRESSION_PDF " -iname \"*.pdf\""
@@ -82,11 +83,11 @@ void PdfFile::setTag(std::string &tag, bool selected)
     // assemble command
     if(selected)
     {
-        cmd = EXIF_TOOL_ADD_STR;
+        cmd = EXIF_TOOL_ADDTAGS_STR;
     }
     else
     {
-        cmd = EXIF_TOOL_REMOVE_STR;
+        cmd = EXIF_TOOL_REMOVETAGS_STR;
     }
     
     cmd += tag;
@@ -127,17 +128,6 @@ void PdfFile::setTag(std::string &tag, bool selected)
     updateAvailableTags();
 }
 
-void PdfFile::readCreationTime(std::string &filepath)
-{
-    char modified_time_string[20];
-
-    struct stat attr;
-    stat(filepath.c_str(), &attr);
-    strftime(modified_time_string, sizeof(modified_time_string), "%F %T", localtime(&(attr.st_ctime)));
-
-    mCreationTime = modified_time_string;
-}
-
 void PdfFile::readTags(std::string &filepath)
 {
     FILE *fp;
@@ -145,7 +135,7 @@ void PdfFile::readTags(std::string &filepath)
     std::string cmd;
     
     // assemble command
-    cmd = EXIF_TOOL_READ_STR;
+    cmd = EXIF_TOOL_READTAGS_STR;
     cmd += "\"";
     cmd += filepath;
     cmd += "\"";
@@ -159,7 +149,7 @@ void PdfFile::readTags(std::string &filepath)
     }
 
     // Read the output a line at a time - output it.
-    while (fgets(exiftool_result_line, sizeof(exiftool_result_line), fp) != NULL) {
+    if (fgets(exiftool_result_line, sizeof(exiftool_result_line), fp) != NULL) {
         // remove trailing newline
         char *pos;
         if ((pos=strchr(exiftool_result_line, '\n')) != NULL)
@@ -181,6 +171,49 @@ void PdfFile::readTags(std::string &filepath)
                 mTags.push_back(tag_str);
                 ptr = strtok(NULL, delim);
             }
+        }
+    }
+}
+
+void PdfFile::readCreationTime(std::string &filepath)
+{
+    FILE *fp;
+    char exiftool_result_line[1024];
+    std::string cmd;
+    
+    // assemble command
+    cmd = EXIF_TOOL_READCREATIONDATE_STR;
+    cmd += "\"";
+    cmd += filepath;
+    cmd += "\"";
+
+    LOG(LOG_INFO, "executing command: %s\n", cmd.c_str());   
+
+    // Open the command for reading.
+    fp = popen(cmd.c_str(), "r");
+    if (fp == NULL) {
+        LOG(LOG_ERR, "Failed to run command\n");
+    }
+
+    // Read the output a line at a time - output it.
+    if (fgets(exiftool_result_line, sizeof(exiftool_result_line), fp) != NULL) {
+        // remove trailing newline
+        char *pos;
+        if ((pos=strchr(exiftool_result_line, '\n')) != NULL)
+            *pos = '\0';
+
+        if ((pos=strstr(exiftool_result_line, ": ")) != NULL) // Found date
+        {
+            pos += 2;
+
+            char *posPlus;
+            if((posPlus=strstr(exiftool_result_line, "+")) != NULL) // Found +
+            {
+                // strip all after '+' sign
+                *posPlus = '\0';
+            }
+
+            mCreationTime = pos;
         }
     }
 }
