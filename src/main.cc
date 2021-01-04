@@ -12,6 +12,9 @@ namespace fs = std::filesystem;
 // std::find
 #include <algorithm>
 
+#include <chrono> 
+using namespace std::chrono; 
+
 /* Defines/Macros */
 
 #define UI_FILE "PdfTag_GtkGui.glade"
@@ -368,6 +371,8 @@ loadFiles(std::string &path)
     bool loadingCompleted = false;
     float loadingCompleteFraction = 0.0f;
 
+    auto start = high_resolution_clock::now(); 
+
     gtk_widget_show(data.loading_dialog);
 
     loadingOkay = PdfFile::beginLoadPdfFilesFromDir(path);
@@ -395,6 +400,9 @@ loadFiles(std::string &path)
 
     display_files();
     setup_tagfilter();
+
+    auto stop = high_resolution_clock::now(); 
+    LOG(LOG_INFO, "loaded %d files in %dms\n", (int)PdfFile::getFiles().size(), (int)duration_cast<milliseconds>(stop - start).count());
 
     std::string statusString = "Loaded " + std::to_string(PdfFile::getFiles().size()) + " files from root directory: " + path;
 
