@@ -4,7 +4,7 @@ A GTK3-based PDF tag (keyword) management desktop application
 ![](res/Screenshot.png)
 
 # Dependencies
-* libimage-exiftool-perl for PDF metadata modification
+* libimage-exiftool-perl for PDF metadata reading/modifying
 * This software uses std::filesystem, so a gcc with C++17 support shall be used.
 * find
 * wc
