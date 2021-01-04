@@ -22,6 +22,7 @@ file(GLOB_RECURSE SOURCES "src/*.cc")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/res/PdfTag_GtkGui.glade ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/res/icon.png ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/res/date_pick_icon.png ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 
 add_executable(${BIN_NAME} ${SOURCES})
 

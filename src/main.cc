@@ -37,6 +37,7 @@ static struct
     GtkWidget *loading_dialog;
     GtkWidget *settings_dialog;
     GtkWidget *error_dialog;
+    GtkWidget *date_chooser_dialog;
 
     GtkLabel *status_label;
     GtkLabel *file_table_label;
@@ -49,6 +50,10 @@ static struct
     GtkLabel *loading_dialog_label;
 
     GtkEntry *pdf_viewer_entry;
+
+    GtkEntry *min_date_entry;
+    GtkEntry *max_date_entry;
+    GtkCalendar *date_chooser_calendar;
 
     GtkTreeStore *file_treestore;
     GtkTreeView *file_treeview;
@@ -93,6 +98,8 @@ static PdfFile *selectedFile = nullptr;
 static GtkTreeIter selectedFileIter;
 static GtkTreeModel *selectedFileModel;
 
+static GtkEntry* activeDateEntry = nullptr;
+
 /* Prototypes */
 static void
 loadFiles(std::string &path);
@@ -112,7 +119,7 @@ update_tags_table();
 static void
 openSelectedPdf();
 
-static void 
+static void
 copySelectedPdfTo(std::string &pathString);
 
 static void
@@ -156,6 +163,7 @@ int main(int argc, char **argv)
     GET_GTK(loading_dialog, GTK_WIDGET);
     GET_GTK(settings_dialog, GTK_WIDGET);
     GET_GTK(error_dialog, GTK_WIDGET);
+    GET_GTK(date_chooser_dialog, GTK_WIDGET);
 
     GET_GTK(status_label, GTK_LABEL);
     GET_GTK(file_table_label, GTK_LABEL);
@@ -168,6 +176,10 @@ int main(int argc, char **argv)
     GET_GTK(loading_dialog_label, GTK_LABEL);
 
     GET_GTK(pdf_viewer_entry, GTK_ENTRY);
+
+    GET_GTK(min_date_entry, GTK_ENTRY);
+    GET_GTK(max_date_entry, GTK_ENTRY);
+    GET_GTK(date_chooser_calendar, GTK_CALENDAR);
 
     GET_GTK(file_treestore, GTK_TREE_STORE);
     GET_GTK(file_treeview, GTK_TREE_VIEW);
@@ -281,6 +293,22 @@ display_files()
                 continue; // skip if filter string is not contained
         }
 
+        // date-based filtering
+        std::string minDate = gtk_entry_get_text(data.min_date_entry);
+        std::string maxDate = gtk_entry_get_text(data.max_date_entry);
+        if(!minDate.empty())
+        {
+            int compareLen = MIN(minDate.size(), f.getCreationTime().size());
+            if(minDate.substr(0,compareLen).compare(f.getCreationTime().substr(0,compareLen)) > 0)
+                continue; // skip if the min-date is newer than the date of the file
+        }
+        if(!maxDate.empty())
+        {
+            int compareLen = MIN(maxDate.size(), f.getCreationTime().size());
+            if(maxDate.substr(0,compareLen).compare(f.getCreationTime().substr(0,compareLen)) < 0)
+                continue; // skip if the maxdate is older than the date of the file
+        }
+
         ++itemsShown;
 
         gtk_tree_store_append(data.file_treestore, &data.file_tree_iterator, NULL);
@@ -292,7 +320,7 @@ display_files()
 
     std::string tableLabelText = "File table (";
     tableLabelText += std::to_string(itemsShown);
-    tableLabelText +=  " items shown)";
+    tableLabelText += " items shown)";
 
     gtk_label_set_text(data.file_table_label, tableLabelText.c_str());
 }
@@ -385,11 +413,11 @@ openSelectedPdf()
         throw "PdfViewer not defined in settings.";
     }
 
-    if(nullptr == selectedFile)
+    if (nullptr == selectedFile)
     {
         throw "No file selected.";
     }
-    
+
     cmdStr += " \"";
     cmdStr += selectedFile->getFilename();
     cmdStr += "\" &";
@@ -456,9 +484,12 @@ on_open_selected_activate(GtkMenuItem *m)
 
     LOG(LOG_INFO, "on_open_selected_activate\n");
 
-    try{
+    try
+    {
         openSelectedPdf();
-    } catch (const std::string& msg) {
+    }
+    catch (const std::string &msg)
+    {
         raiseError(msg);
     }
 }
@@ -472,7 +503,7 @@ on_save_selected_activate(GtkMenuItem *m)
 
     LOG(LOG_INFO, "on_save_selected_activate\n");
 
-    if(nullptr == selectedFile)
+    if (nullptr == selectedFile)
     {
         raiseError("No file selected.");
         return;
@@ -541,17 +572,20 @@ on_file_treeview_button_press_event(GtkWidget *widget, GdkEventButton *event, gp
     (void)widget;
     (void)user_data;
 
-    if(event->type == GDK_DOUBLE_BUTTON_PRESS)
+    if (event->type == GDK_DOUBLE_BUTTON_PRESS)
     {
         LOG(LOG_INFO, "double-click on table detected\n");
 
-        try{
+        try
+        {
             openSelectedPdf();
-        } catch (const char* msg) {
+        }
+        catch (const char *msg)
+        {
             raiseError(msg);
         }
     }
-        
+
     /* pass event to underlying handlers. */
     return FALSE;
 }
@@ -821,6 +855,108 @@ on_file_search_search_changed(GtkSearchEntry *e)
 
     // display files
     display_files();
+}
+
+GTK_CALLBACK void
+on_date_entry_icon_press(GtkEntry *entry,
+                             GtkEntryIconPosition icon_pos,
+                             GdkEvent *event,
+                             gpointer user_data)
+{
+    (void)event;
+    (void)user_data;
+
+    LOG(LOG_INFO, "on_date_entry_icon_press entry:%s pos:%d\n", (entry == data.min_date_entry) ? "min" : (entry == data.max_date_entry) ? "max" : "?", icon_pos);
+
+    if(GTK_ENTRY_ICON_PRIMARY == icon_pos) 
+    {
+        activeDateEntry = entry;
+        std::string dateString = gtk_entry_get_text(entry); 
+        if (!dateString.empty())
+        {
+            guint year, month, day;
+            bool yearFound = false, monthFound = false, dayFound = false;
+            std::stringstream dateStringStream(dateString); 
+            std::string temp;
+            if(std::getline(dateStringStream, temp,':')) {
+                if(std::stringstream(temp)>>year)
+                {
+                    yearFound = true;
+                }
+            }
+            if(std::getline(dateStringStream, temp,':')) {
+                if(std::stringstream(temp)>>month)
+                {
+                    monthFound = true;
+                }
+            }
+            if(std::getline(dateStringStream, temp,':')) {
+                if(std::stringstream(temp)>>day)
+                {
+                    dayFound = true;
+                }
+            }
+            if(yearFound && monthFound)
+                gtk_calendar_select_month(data.date_chooser_calendar, month - 1, year);
+            if(dayFound)
+                gtk_calendar_select_day(data.date_chooser_calendar, day);
+        }
+        gtk_widget_show(data.date_chooser_dialog);
+    } 
+    else if(GTK_ENTRY_ICON_SECONDARY == icon_pos) 
+    {
+        // clear
+        gtk_entry_set_text(entry, "");
+    }
+}
+
+GTK_CALLBACK void
+on_date_entry_changed(GtkEditable *editable)
+{
+    (void)editable;
+
+    LOG(LOG_INFO, "on_date_entry_changed\n");
+
+    if(strlen(gtk_entry_get_text(GTK_ENTRY(editable))) > 0)
+    {
+        gtk_entry_set_icon_sensitive(GTK_ENTRY(editable), GTK_ENTRY_ICON_SECONDARY, TRUE);
+    }
+    else
+    {
+        gtk_entry_set_icon_sensitive(GTK_ENTRY(editable), GTK_ENTRY_ICON_SECONDARY, FALSE);
+    }
+
+    // display files (as filter condition was updated)
+    display_files();
+}
+
+GTK_CALLBACK void
+on_date_chooser_cancel_clicked(GtkButton *button)
+{
+    (void)button;
+
+    gtk_widget_hide(data.date_chooser_dialog);
+
+    LOG(LOG_INFO, "on_date_chooser_cancel_clicked\n");
+}
+
+GTK_CALLBACK void
+on_date_chooser_ok_clicked(GtkButton *button)
+{
+    (void)button;
+
+    guint year, month, day;
+    char datestr[4+1+2+1+2+1];
+
+    gtk_calendar_get_date(data.date_chooser_calendar, &year, &month, &day);
+
+    sprintf(datestr, "%04d:%02d:%02d", year, month + 1, day);
+
+    gtk_entry_set_text(activeDateEntry, datestr);
+
+    gtk_widget_hide(data.date_chooser_dialog);
+
+    LOG(LOG_INFO, "on_date_chooser_ok_clicked\n");
 }
 
 GTK_CALLBACK gboolean
