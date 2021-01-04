@@ -1,5 +1,7 @@
 # PDFTag
-PDF tag (keyword) management desktop application
+A GTK3-based PDF tag (keyword) management desktop application
+
+![](res/Screenshot.png)
 
 # Dependencies
 * libimage-exiftool-perl for PDF metadata modification
