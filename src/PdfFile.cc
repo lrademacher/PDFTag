@@ -9,19 +9,22 @@
 #include <algorithm>
 
 #include "Logging.h"
+#include "Util.h"
 
 #include <stdexcept>
 #include <sstream> 
 
+#include <regex>
+
 /* Defines/Macros */
-#define EXIF_TOOL_READTAGS_STR "exiftool -Keywords "
+#define EXIF_TOOL_BIN "exiftool "
+#define EXIF_TOOL_READ_TAGS_FLAG "-Keywords "
+#define EXIF_TOOL_READ_CREATEDATE_FLAG "-createdate "
+#define EXIF_TOOL_READ_None_FLAG "-None "
+#define EXIF_TOOL_PDF_FILTER "-ext PDF "
+#define EXIF_TOOL_RECURSIVE_DIR_SEARCH "-r "
 #define EXIF_TOOL_ADDTAGS_STR "exiftool -Keywords+="
 #define EXIF_TOOL_REMOVETAGS_STR "exiftool -Keywords-="
-#define EXIF_TOOL_READCREATIONDATE_STR "exiftool -createdate "
-
-#define FIND_COMMAND "/usr/bin/find "
-#define FIND_EXPRESSION_PDF " -iname \"*.pdf\""
-#define FIND_COUNT_EXTENSION " | wc -l"
 
 /* Variables */
 std::vector<std::string> PdfFile::AvailableTags;
@@ -29,12 +32,20 @@ std::vector<PdfFile> PdfFile::Files;
 FILE *PdfFile::loadingFp;
 int PdfFile::numFilesToLoad;
 
+std::string PdfFile::currentlyLoadingFilename;
+std::string PdfFile::currentlyLoadingCreateDate;
+std::vector<std::string> PdfFile::currentlyLoadingTags;
+
+static std::regex regexFilename ("======== (.*)");
+static std::regex regexKeywords ("Keywords[ ]*: (.*)");
+static std::regex regexCreateDate ("Create Date[ ]*: (.*)");
+
 /* Implementation */
-PdfFile::PdfFile(std::string &path)
+PdfFile::PdfFile(std::string &path, std::string &creationDate, std::vector<std::string> &tags)
 {
     mFilename = path;
-    readCreationTime(path);
-    readTags(path);
+    mCreationDate = creationDate;
+    mTags = tags;
 }
 
 std::string& PdfFile::getFilename()
@@ -44,7 +55,7 @@ std::string& PdfFile::getFilename()
 
 std::string& PdfFile::getCreationTime()
 {
-    return mCreationTime;
+    return mCreationDate;
 }
 
 std::vector<std::string>& PdfFile::getTags()
@@ -128,96 +139,6 @@ void PdfFile::setTag(std::string &tag, bool selected)
     updateAvailableTags();
 }
 
-void PdfFile::readTags(std::string &filepath)
-{
-    FILE *fp;
-    char exiftool_result_line[1024];
-    std::string cmd;
-    
-    // assemble command
-    cmd = EXIF_TOOL_READTAGS_STR;
-    cmd += "\"";
-    cmd += filepath;
-    cmd += "\"";
-
-    LOG(LOG_INFO, "executing command: %s\n", cmd.c_str());   
-
-    // Open the command for reading.
-    fp = popen(cmd.c_str(), "r");
-    if (fp == NULL) {
-        LOG(LOG_ERR, "Failed to run command\n");
-    }
-
-    // Read the output a line at a time - output it.
-    if (fgets(exiftool_result_line, sizeof(exiftool_result_line), fp) != NULL) {
-        // remove trailing newline
-        char *pos;
-        if ((pos=strchr(exiftool_result_line, '\n')) != NULL)
-            *pos = '\0';
-
-        char delim[] = ", ";
-
-        if ((pos=strstr(exiftool_result_line, ": ")) != NULL) // Found keywords
-        {
-            pos += 2;
-
-            // split by comma
-            char *ptr = strtok(pos, delim);
-
-            while(ptr != NULL)
-            {
-                LOG(LOG_INFO, "found tag: %s\n", ptr);
-                std::string tag_str = ptr;
-                mTags.push_back(tag_str);
-                ptr = strtok(NULL, delim);
-            }
-        }
-    }
-}
-
-void PdfFile::readCreationTime(std::string &filepath)
-{
-    FILE *fp;
-    char exiftool_result_line[1024];
-    std::string cmd;
-    
-    // assemble command
-    cmd = EXIF_TOOL_READCREATIONDATE_STR;
-    cmd += "\"";
-    cmd += filepath;
-    cmd += "\"";
-
-    LOG(LOG_INFO, "executing command: %s\n", cmd.c_str());   
-
-    // Open the command for reading.
-    fp = popen(cmd.c_str(), "r");
-    if (fp == NULL) {
-        LOG(LOG_ERR, "Failed to run command\n");
-    }
-
-    // Read the output a line at a time - output it.
-    if (fgets(exiftool_result_line, sizeof(exiftool_result_line), fp) != NULL) {
-        // remove trailing newline
-        char *pos;
-        if ((pos=strchr(exiftool_result_line, '\n')) != NULL)
-            *pos = '\0';
-
-        if ((pos=strstr(exiftool_result_line, ": ")) != NULL) // Found date
-        {
-            pos += 2;
-
-            char *posPlus;
-            if((posPlus=strstr(exiftool_result_line, "+")) != NULL) // Found +
-            {
-                // strip all after '+' sign
-                *posPlus = '\0';
-            }
-
-            mCreationTime = pos;
-        }
-    }
-}
-
 /* Static */
 
 std::vector<PdfFile>& PdfFile::getFiles()
@@ -246,10 +167,11 @@ int PdfFile::getNumPdfInDir(std::string &path)
     int numPdf;
 
     // assemble command
-    cmd = FIND_COMMAND;
+    cmd = EXIF_TOOL_BIN;
+    cmd += EXIF_TOOL_READ_None_FLAG;
+    cmd += EXIF_TOOL_PDF_FILTER;
+    cmd += EXIF_TOOL_RECURSIVE_DIR_SEARCH;
     cmd += path;
-    cmd += FIND_EXPRESSION_PDF;
-    cmd += FIND_COUNT_EXTENSION;
 
     LOG(LOG_INFO, "executing command: %s\n", cmd.c_str());   
 
@@ -282,10 +204,18 @@ bool PdfFile::beginLoadPdfFilesFromDir(std::string &path)
 
     numFilesToLoad = getNumPdfInDir(path);
 
+    // Clear temporary string storage
+    currentlyLoadingFilename.clear();
+    currentlyLoadingCreateDate.clear();
+    currentlyLoadingTags.clear();
+
     // assemble command
-    cmd = FIND_COMMAND;
+    cmd = EXIF_TOOL_BIN;
+    cmd += EXIF_TOOL_READ_TAGS_FLAG;
+    cmd += EXIF_TOOL_READ_CREATEDATE_FLAG;
+    cmd += EXIF_TOOL_PDF_FILTER;
+    cmd += EXIF_TOOL_RECURSIVE_DIR_SEARCH;
     cmd += path;
-    cmd += FIND_EXPRESSION_PDF;
 
     LOG(LOG_INFO, "executing command: %s\n", cmd.c_str());   
 
@@ -297,6 +227,7 @@ bool PdfFile::beginLoadPdfFilesFromDir(std::string &path)
     }
     return true;
 }
+
 
 bool PdfFile::loadPdfFilesFromDirIncrement(float &loadingCompleteFraction)
 {
@@ -314,13 +245,45 @@ bool PdfFile::loadPdfFilesFromDirIncrement(float &loadingCompleteFraction)
         if ((pos=strchr(find_result_line, '\n')) != NULL)
             *pos = '\0';
 
-        std::string filepath (find_result_line);
+        std::string lineContent (find_result_line);
+        
+        bool regexFound = testRegex(regexFilename, lineContent);
 
-        Files.push_back(filepath);
+        if(regexFound)
+        {   
+            // new entry => push last entry to files vector if available
+            if(!currentlyLoadingFilename.empty())
+                Files.push_back(PdfFile(currentlyLoadingFilename, currentlyLoadingCreateDate, currentlyLoadingTags));
+
+            // setup filename of next entry and clear other fields
+            currentlyLoadingFilename = lineContent;
+            currentlyLoadingCreateDate.clear();
+            currentlyLoadingTags.clear();
+        }
+        else
+        {
+            regexFound = testRegex(regexKeywords, lineContent);
+            if(regexFound)
+            {
+                Util::splitString(lineContent, currentlyLoadingTags, ", ");
+            }
+            else
+            {
+                regexFound = testRegex(regexCreateDate, lineContent);
+                if(regexFound)
+                {
+                    currentlyLoadingCreateDate = lineContent;
+                }
+            }
+            
+        }
     }
     else
     {
         complete = true;
+
+        // last entry => push gathered info to files vector
+        Files.push_back(PdfFile(currentlyLoadingFilename, currentlyLoadingCreateDate, currentlyLoadingTags));
     }
 
     numFilesLoaded = (int)Files.size();    
@@ -338,6 +301,25 @@ bool PdfFile::loadPdfFilesFromDirIncrement(float &loadingCompleteFraction)
     }
 
     return complete;
+}
+
+
+bool PdfFile::testRegex(std::regex &r, std::string &s)
+{
+    bool found = false;
+
+    std::smatch m;
+    
+    if(regex_match(s, m, r))
+    {
+        if (m.size() == 2) {
+            std::ssub_match base_sub_match = m[1];
+            s = base_sub_match;
+            found = true;
+        }    
+    }
+
+    return found;
 }
 
 void PdfFile::updateAvailableTags()

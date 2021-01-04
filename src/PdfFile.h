@@ -3,10 +3,11 @@
 
 #include <string>
 #include <vector>
+#include <regex>
 
 class PdfFile {
 public:
-    PdfFile(std::string &path);
+    PdfFile(std::string &path, std::string &creationDate, std::vector<std::string> &tags);
 
     std::string& getFilename();
     std::string& getCreationTime();
@@ -31,9 +32,10 @@ private:
 
     static void updateAvailableTags();
     static int getNumPdfInDir(std::string &path);
+    static bool testRegex(std::regex &r, std::string &s);
 
     std::string mFilename;
-    std::string mCreationTime;
+    std::string mCreationDate;
     std::vector<std::string> mTags;
 
     // TODO: Make this dict: key=filename
@@ -43,6 +45,9 @@ private:
 
     static FILE *loadingFp;
     static int numFilesToLoad;
+    static std::string currentlyLoadingFilename;
+    static std::string currentlyLoadingCreateDate;
+    static std::vector<std::string> currentlyLoadingTags;
 };
 
 #endif
