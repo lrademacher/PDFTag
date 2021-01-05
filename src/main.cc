@@ -398,8 +398,9 @@ loadFiles(std::string &path)
         } while (!loadingCompleted);
     }
 
-    display_files();
     setup_tagfilter();
+    update_tags_table();
+    display_files();
 
     auto stop = high_resolution_clock::now(); 
     LOG(LOG_INFO, "loaded %d files in %dms\n", (int)PdfFile::getFiles().size(), (int)duration_cast<milliseconds>(stop - start).count());
@@ -496,7 +497,7 @@ on_open_selected_activate(GtkMenuItem *m)
     {
         openSelectedPdf();
     }
-    catch (const std::string &msg)
+    catch (const char *msg)
     {
         raiseError(msg);
     }
@@ -694,28 +695,36 @@ on_file_selection_changed(GtkWidget *w)
     (void)w;
     gchar *selected_filename;
     gchar *selected_dir;
-    char tagsLabel[100];
 
     std::string fullfilename;
 
     LOG(LOG_INFO, "on_file_selection_changed\n");
 
+    std::string tagsLabel = TAGS_LABEL_STR;
+
     if (gtk_tree_selection_get_selected(GTK_TREE_SELECTION(w), &selectedFileModel, &selectedFileIter) == FALSE)
-        return;
+    {
+        selectedFile = nullptr;
+        tagsLabel += "-";
+        
+        LOG(LOG_INFO, "No file selected\n");
+    }
+    else
+    {
+        gtk_tree_model_get(selectedFileModel, &selectedFileIter, 0, &selected_filename, 1, &selected_dir, -1);
 
-    gtk_tree_model_get(selectedFileModel, &selectedFileIter, 0, &selected_filename, 1, &selected_dir, -1);
+        fullfilename = selected_dir;
+        fullfilename += "/";
+        fullfilename += selected_filename;
+        LOG(LOG_INFO, "col 0 = %s\n", fullfilename.c_str());
 
-    fullfilename = selected_dir;
-    fullfilename += "/";
-    fullfilename += selected_filename;
-    LOG(LOG_INFO, "col 0 = %s\n", fullfilename.c_str());
+        tagsLabel += selected_filename;
 
-    strcpy(tagsLabel, TAGS_LABEL_STR);
-    strcat(tagsLabel, selected_filename);
-    gtk_label_set_label(data.tags_label, tagsLabel);
+        // update selected file
+        selectedFile = PdfFile::getFileByFilename(fullfilename); 
+    }
 
-    // update selected file
-    selectedFile = PdfFile::getFileByFilename(fullfilename);
+    gtk_label_set_label(data.tags_label, tagsLabel.c_str());
 
     // populate tags table
     update_tags_table();
