@@ -985,6 +985,9 @@
                                 <property name="sizing">autosize</property>
                                 <property name="fixed_width">91</property>
                                 <property name="title" translatable="yes">Tag</property>
+                                <property name="clickable">True</property>
+                                <property name="sort_indicator">True</property>
+                                <property name="sort_column_id">1</property>
                                 <child>
                                   <object class="GtkCellRendererText" id="tags_tag_renderer"/>
                                 </child>
