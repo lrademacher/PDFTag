@@ -34,8 +34,3 @@ A GTK3-based PDF tag (keyword) management desktop application
 ## Other
 * Integrate into deb package management to resolve dependencies and make installation easy
 * Port to gtkmm
-
-
-# Issues
-* Make it visible to user that a tag was not applied
-* Bad performance on loading: Maybe only call exiftool once per PDF?
