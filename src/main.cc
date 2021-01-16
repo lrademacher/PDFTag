@@ -29,6 +29,10 @@ using namespace std::chrono;
 #define TAGSFILTER_UNTAGGED "<untagged>"
 
 /* Types */
+enum class CopyType {
+    Copy,
+    Move
+};
 
 /* Variables */
 static struct
@@ -103,6 +107,8 @@ static GtkTreeModel *selectedFileModel;
 
 static GtkEntry* activeDateEntry = nullptr;
 
+static CopyType copyType; 
+
 /* Prototypes */
 static void
 loadFiles(std::string &path);
@@ -123,10 +129,13 @@ static void
 openSelectedPdf();
 
 static void
-copySelectedPdfTo(std::string &pathString);
+copySelectedPdfTo(std::string &pathString, CopyType ct);
 
 static void
 raiseError(const std::string &errorString);
+
+static void 
+copy_selected_files(CopyType ct);
 
 /* Implementations */
 
@@ -439,14 +448,21 @@ openSelectedPdf()
 }
 
 static void
-copySelectedPdfTo(std::string &pathString)
+copySelectedPdfTo(std::string &pathString, CopyType ct)
 {
     std::string cmdStr;
 
     if (pathString.empty())
         return;
 
+    if (CopyType::Copy == ct) {
     cmdStr += "cp \"";
+    } else if (CopyType::Move == ct) {
+        cmdStr += "mv \"";
+    } else {
+        LOG(LOG_ERR, "Unknown copy type %d\n", (int)ct);
+        return;
+    }
     cmdStr += selectedFile->getFilename();
     cmdStr += "\" \"";
     cmdStr += pathString;
@@ -465,6 +481,27 @@ raiseError(const std::string &errorString)
     gtk_label_set_text(data.error_dialog_label, displayString.c_str());
 
     gtk_widget_show(data.error_dialog);
+}
+
+static void 
+copy_selected_files(CopyType ct)
+{
+    std::string dir;
+
+    if (nullptr == selectedFile)
+    {
+        raiseError("No file selected.");
+        return;
+    }
+
+    copyType = ct;
+
+    if (AppSettings::getWorkingDirectory(dir))
+    {
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(data.file_chooser_copy), dir.c_str());
+    }
+
+    gtk_widget_show(data.file_chooser_copy);
 }
 
 /* ************* GTK SIGNAL HANDLERS ******************* */
@@ -506,13 +543,23 @@ on_open_selected_activate(GtkMenuItem *m)
 GTK_CALLBACK void
 on_save_selected_activate(GtkMenuItem *m)
 {
-    std::string dir;
-
     (void)m;
 
-    LOG(LOG_INFO, "on_save_selected_activate\n");
+    LOG(LOG_INFO, "on_copy_selected_activate\n");
 
-    if (nullptr == selectedFile)
+    copy_selected_files(CopyType::Copy);
+}
+
+GTK_CALLBACK void
+on_move_selected_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_move_selected_activate\n");
+
+    copy_selected_files(CopyType::Move);
+}
+
     {
         raiseError("No file selected.");
         return;
@@ -647,7 +694,7 @@ on_file_chooser_copy_ok_button_clicked(GtkButton *b)
     std::string pathString(gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(data.file_chooser_copy)));
     LOG(LOG_INFO, "directory %s chosen\n", pathString.c_str());
 
-    copySelectedPdfTo(pathString);
+    copySelectedPdfTo(pathString, copyType);
 
     gtk_widget_hide(data.file_chooser_copy);
 }
