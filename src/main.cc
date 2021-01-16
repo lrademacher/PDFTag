@@ -45,6 +45,7 @@ static struct
     GtkWidget *settings_dialog;
     GtkWidget *error_dialog;
     GtkWidget *date_chooser_dialog;
+    GtkWidget *selected_menu;
 
     GtkLabel *status_label;
     GtkLabel *file_table_label;
@@ -179,6 +180,7 @@ int main(int argc, char **argv)
     GET_GTK(settings_dialog, GTK_WIDGET);
     GET_GTK(error_dialog, GTK_WIDGET);
     GET_GTK(date_chooser_dialog, GTK_WIDGET);
+    GET_GTK(selected_menu, GTK_WIDGET);
 
     GET_GTK(status_label, GTK_LABEL);
     GET_GTK(file_table_label, GTK_LABEL);
@@ -820,6 +822,8 @@ on_file_selection_changed(GtkWidget *w)
         tagsLabel += "-";
         
         LOG(LOG_INFO, "No file selected\n");
+
+        gtk_widget_set_sensitive(data.selected_menu, false);
     }
     else
     {
@@ -834,6 +838,8 @@ on_file_selection_changed(GtkWidget *w)
 
         // update selected file
         selectedFile = PdfFile::getFileByFilename(fullfilename); 
+
+        gtk_widget_set_sensitive(data.selected_menu, true);
     }
 
     gtk_label_set_label(data.tags_label, tagsLabel.c_str());
