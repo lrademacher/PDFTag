@@ -8,7 +8,8 @@ A GTK3-based PDF tag (keyword) management desktop application
 * This software uses std::filesystem, so a gcc with C++17 support shall be used.
 * find
 * wc
-* cp
+* cp/mv
+* xclip
 
 # Features
 * List of all PDFs contained in the selected working directory
