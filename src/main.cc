@@ -137,6 +137,9 @@ raiseError(const std::string &errorString);
 static void 
 copy_selected_files(CopyType ct);
 
+static void 
+copy_selected_files_clipboard(CopyType ct);
+
 /* Implementations */
 
 int main(int argc, char **argv)
@@ -456,7 +459,7 @@ copySelectedPdfTo(std::string &pathString, CopyType ct)
         return;
 
     if (CopyType::Copy == ct) {
-    cmdStr += "cp \"";
+        cmdStr += "cp \"";
     } else if (CopyType::Move == ct) {
         cmdStr += "mv \"";
     } else {
@@ -502,6 +505,21 @@ copy_selected_files(CopyType ct)
     }
 
     gtk_widget_show(data.file_chooser_copy);
+}
+
+static void 
+copy_selected_files_clipboard(CopyType ct)
+{
+    std::string dir;
+
+    if (nullptr == selectedFile)
+    {
+        raiseError("No file selected.");
+        return;
+    }
+
+    // TODO
+    (void)ct;
 }
 
 /* ************* GTK SIGNAL HANDLERS ******************* */
@@ -560,17 +578,24 @@ on_move_selected_activate(GtkMenuItem *m)
     copy_selected_files(CopyType::Move);
 }
 
-    {
-        raiseError("No file selected.");
-        return;
-    }
+GTK_CALLBACK void
+on_copy_clipboard_selected_activate(GtkMenuItem *m)
+{
+    (void)m;
 
-    if (AppSettings::getWorkingDirectory(dir))
-    {
-        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(data.file_chooser_copy), dir.c_str());
-    }
+    LOG(LOG_INFO, "on_copy_clipboard_selected_activate\n");
 
-    gtk_widget_show(data.file_chooser_copy);
+    copy_selected_files_clipboard(CopyType::Copy);
+}
+
+GTK_CALLBACK void
+on_cut_clipboard_selected_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_copy_clipboard_selected_activate\n");
+
+    copy_selected_files_clipboard(CopyType::Move);
 }
 
 GTK_CALLBACK void
@@ -619,6 +644,30 @@ on_about_dialog_response(GtkDialog *dialog, gint response_id)
     LOG(LOG_INFO, "on_about_dialog_response\n");
 
     gtk_widget_hide(data.about_dialog);
+}
+
+GTK_CALLBACK gboolean
+on_window_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data) {
+    (void)widget;
+    (void)data;
+
+    LOG(LOG_INFO, "on_window_key_press_event\n");
+
+    if (event->state & GDK_CONTROL_MASK)
+    {
+        if (event->keyval == GDK_KEY_c){
+            LOG(LOG_INFO, "CTRL + C\n");
+            copy_selected_files_clipboard(CopyType::Copy);
+            return TRUE;
+        }
+        else if (event->keyval == GDK_KEY_x){
+            LOG(LOG_INFO, "CTRL + X\n");
+            copy_selected_files_clipboard(CopyType::Move);
+            return TRUE;
+        }
+    }
+
+    return FALSE;
 }
 
 /* Detect table double-click */
