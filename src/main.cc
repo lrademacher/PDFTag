@@ -510,7 +510,8 @@ copy_selected_files(CopyType ct)
 static void 
 copy_selected_files_clipboard(CopyType ct)
 {
-    std::string dir;
+    std::string cmdStr;
+    std::string clipboardContent;
 
     if (nullptr == selectedFile)
     {
@@ -518,8 +519,23 @@ copy_selected_files_clipboard(CopyType ct)
         return;
     }
 
-    // TODO
-    (void)ct;
+    if (CopyType::Copy == ct)
+    {
+        clipboardContent = "copy\n";
+    }
+    else
+    {
+        clipboardContent = "cut\n";
+    }
+    
+    clipboardContent += "file://";
+    clipboardContent += selectedFile->getFilename();
+
+    cmdStr = "echo -n \"";
+    cmdStr += clipboardContent;
+    cmdStr += "\" | xclip -i -selection clipboard -t x-special/gnome-copied-files";
+
+    system(cmdStr.c_str());
 }
 
 /* ************* GTK SIGNAL HANDLERS ******************* */
