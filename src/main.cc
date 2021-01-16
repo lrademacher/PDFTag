@@ -29,6 +29,10 @@ using namespace std::chrono;
 #define TAGSFILTER_UNTAGGED "<untagged>"
 
 /* Types */
+enum class CopyType {
+    Copy,
+    Move
+};
 
 /* Variables */
 static struct
@@ -41,6 +45,7 @@ static struct
     GtkWidget *settings_dialog;
     GtkWidget *error_dialog;
     GtkWidget *date_chooser_dialog;
+    GtkWidget *selected_menu;
 
     GtkLabel *status_label;
     GtkLabel *file_table_label;
@@ -103,6 +108,8 @@ static GtkTreeModel *selectedFileModel;
 
 static GtkEntry* activeDateEntry = nullptr;
 
+static CopyType copyType; 
+
 /* Prototypes */
 static void
 loadFiles(std::string &path);
@@ -123,10 +130,16 @@ static void
 openSelectedPdf();
 
 static void
-copySelectedPdfTo(std::string &pathString);
+copySelectedPdfTo(std::string &pathString, CopyType ct);
 
 static void
 raiseError(const std::string &errorString);
+
+static void 
+copy_selected_files(CopyType ct);
+
+static void 
+copy_selected_files_clipboard(CopyType ct);
 
 /* Implementations */
 
@@ -167,6 +180,7 @@ int main(int argc, char **argv)
     GET_GTK(settings_dialog, GTK_WIDGET);
     GET_GTK(error_dialog, GTK_WIDGET);
     GET_GTK(date_chooser_dialog, GTK_WIDGET);
+    GET_GTK(selected_menu, GTK_WIDGET);
 
     GET_GTK(status_label, GTK_LABEL);
     GET_GTK(file_table_label, GTK_LABEL);
@@ -439,14 +453,21 @@ openSelectedPdf()
 }
 
 static void
-copySelectedPdfTo(std::string &pathString)
+copySelectedPdfTo(std::string &pathString, CopyType ct)
 {
     std::string cmdStr;
 
     if (pathString.empty())
         return;
 
-    cmdStr += "cp \"";
+    if (CopyType::Copy == ct) {
+        cmdStr += "cp \"";
+    } else if (CopyType::Move == ct) {
+        cmdStr += "mv \"";
+    } else {
+        LOG(LOG_ERR, "Unknown copy type %d\n", (int)ct);
+        return;
+    }
     cmdStr += selectedFile->getFilename();
     cmdStr += "\" \"";
     cmdStr += pathString;
@@ -465,6 +486,58 @@ raiseError(const std::string &errorString)
     gtk_label_set_text(data.error_dialog_label, displayString.c_str());
 
     gtk_widget_show(data.error_dialog);
+}
+
+static void 
+copy_selected_files(CopyType ct)
+{
+    std::string dir;
+
+    if (nullptr == selectedFile)
+    {
+        raiseError("No file selected.");
+        return;
+    }
+
+    copyType = ct;
+
+    if (AppSettings::getWorkingDirectory(dir))
+    {
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(data.file_chooser_copy), dir.c_str());
+    }
+
+    gtk_widget_show(data.file_chooser_copy);
+}
+
+static void 
+copy_selected_files_clipboard(CopyType ct)
+{
+    std::string cmdStr;
+    std::string clipboardContent;
+
+    if (nullptr == selectedFile)
+    {
+        raiseError("No file selected.");
+        return;
+    }
+
+    if (CopyType::Copy == ct)
+    {
+        clipboardContent = "copy\n";
+    }
+    else
+    {
+        clipboardContent = "cut\n";
+    }
+    
+    clipboardContent += "file://";
+    clipboardContent += selectedFile->getFilename();
+
+    cmdStr = "echo -n \"";
+    cmdStr += clipboardContent;
+    cmdStr += "\" | xclip -i -selection clipboard -t x-special/gnome-copied-files";
+
+    system(cmdStr.c_str());
 }
 
 /* ************* GTK SIGNAL HANDLERS ******************* */
@@ -506,24 +579,41 @@ on_open_selected_activate(GtkMenuItem *m)
 GTK_CALLBACK void
 on_save_selected_activate(GtkMenuItem *m)
 {
-    std::string dir;
-
     (void)m;
 
-    LOG(LOG_INFO, "on_save_selected_activate\n");
+    LOG(LOG_INFO, "on_copy_selected_activate\n");
 
-    if (nullptr == selectedFile)
-    {
-        raiseError("No file selected.");
-        return;
-    }
+    copy_selected_files(CopyType::Copy);
+}
 
-    if (AppSettings::getWorkingDirectory(dir))
-    {
-        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(data.file_chooser_copy), dir.c_str());
-    }
+GTK_CALLBACK void
+on_move_selected_activate(GtkMenuItem *m)
+{
+    (void)m;
 
-    gtk_widget_show(data.file_chooser_copy);
+    LOG(LOG_INFO, "on_move_selected_activate\n");
+
+    copy_selected_files(CopyType::Move);
+}
+
+GTK_CALLBACK void
+on_copy_clipboard_selected_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_copy_clipboard_selected_activate\n");
+
+    copy_selected_files_clipboard(CopyType::Copy);
+}
+
+GTK_CALLBACK void
+on_cut_clipboard_selected_activate(GtkMenuItem *m)
+{
+    (void)m;
+
+    LOG(LOG_INFO, "on_copy_clipboard_selected_activate\n");
+
+    copy_selected_files_clipboard(CopyType::Move);
 }
 
 GTK_CALLBACK void
@@ -572,6 +662,30 @@ on_about_dialog_response(GtkDialog *dialog, gint response_id)
     LOG(LOG_INFO, "on_about_dialog_response\n");
 
     gtk_widget_hide(data.about_dialog);
+}
+
+GTK_CALLBACK gboolean
+on_window_key_press_event(GtkWidget *widget, GdkEventKey *event, gpointer data) {
+    (void)widget;
+    (void)data;
+
+    LOG(LOG_INFO, "on_window_key_press_event\n");
+
+    if (event->state & GDK_CONTROL_MASK)
+    {
+        if (event->keyval == GDK_KEY_c){
+            LOG(LOG_INFO, "CTRL + C\n");
+            copy_selected_files_clipboard(CopyType::Copy);
+            return TRUE;
+        }
+        else if (event->keyval == GDK_KEY_x){
+            LOG(LOG_INFO, "CTRL + X\n");
+            copy_selected_files_clipboard(CopyType::Move);
+            return TRUE;
+        }
+    }
+
+    return FALSE;
 }
 
 /* Detect table double-click */
@@ -647,7 +761,7 @@ on_file_chooser_copy_ok_button_clicked(GtkButton *b)
     std::string pathString(gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(data.file_chooser_copy)));
     LOG(LOG_INFO, "directory %s chosen\n", pathString.c_str());
 
-    copySelectedPdfTo(pathString);
+    copySelectedPdfTo(pathString, copyType);
 
     gtk_widget_hide(data.file_chooser_copy);
 }
@@ -708,6 +822,8 @@ on_file_selection_changed(GtkWidget *w)
         tagsLabel += "-";
         
         LOG(LOG_INFO, "No file selected\n");
+
+        gtk_widget_set_sensitive(data.selected_menu, false);
     }
     else
     {
@@ -722,6 +838,8 @@ on_file_selection_changed(GtkWidget *w)
 
         // update selected file
         selectedFile = PdfFile::getFileByFilename(fullfilename); 
+
+        gtk_widget_set_sensitive(data.selected_menu, true);
     }
 
     gtk_label_set_label(data.tags_label, tagsLabel.c_str());

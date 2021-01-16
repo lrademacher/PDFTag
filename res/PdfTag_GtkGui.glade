@@ -526,6 +526,7 @@
     <property name="default_width">1200</property>
     <property name="default_height">600</property>
     <property name="icon">icon.png</property>
+    <signal name="key-press-event" handler="on_window_key_press_event" swapped="no"/>
     <child type="titlebar">
       <placeholder/>
     </child>
@@ -559,23 +560,6 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkMenuItem" id="open_selected">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Open selected</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="on_open_selected_activate" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkMenuItem" id="save_selected">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">Copy selected</property>
-                        <signal name="activate" handler="on_save_selected_activate" swapped="no"/>
-                      </object>
-                    </child>
-                    <child>
                       <object class="GtkSeparatorMenuItem">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -589,6 +573,71 @@
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_FileQuit_activate" swapped="no"/>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkMenuItem" id="selected_menu">
+                <property name="visible">True</property>
+                <property name="sensitive">False</property>
+                <property name="can_focus">False</property>
+                <property name="label" translatable="yes">Selected</property>
+                <property name="use_underline">True</property>
+                <child type="submenu">
+                  <object class="GtkMenu">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkMenuItem" id="open_selected">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Open in PDFViewer</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_open_selected_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="save_selected">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Save to Directory</property>
+                        <signal name="activate" handler="on_save_selected_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="move_selected">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Move to Directory</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_move_selected_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkSeparatorMenuItem">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="copy_clipboard_selected">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Copy to clipboard (CTRL + C)</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_copy_clipboard_selected_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkMenuItem" id="cut_clipboard_selected">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="label" translatable="yes">Cut to clipboard (CTRL + X)</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_cut_clipboard_selected_activate" swapped="no"/>
                       </object>
                     </child>
                   </object>
