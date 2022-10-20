@@ -15,6 +15,8 @@ namespace fs = std::filesystem;
 #include <chrono> 
 using namespace std::chrono; 
 
+#include <sstream>
+
 /* Defines/Macros */
 
 #define UI_FILE "PdfTag_GtkGui.glade"
