@@ -17,6 +17,13 @@ using namespace std::chrono;
 
 #include <sstream>
 
+#if defined(__linux__)
+
+#elif defined(__APPLE__)
+#include <mach-o/dyld.h>
+#include <limits.h>
+#endif
+
 /* Defines/Macros */
 
 #define UI_FILE "PdfTag_GtkGui.glade"
@@ -149,15 +156,24 @@ int main(int argc, char **argv)
 {
     GError *error = NULL;
     char uiFilePath[256];
-    ssize_t uiFilePathLen = sizeof(uiFilePath);
 
     /* Init GTK+ */
     gtk_init(&argc, &argv);
 
     /* Prepare path to UI File*/
+#if defined(__linux__)
+    ssize_t uiFilePathLen = sizeof(uiFilePath);
     int bytes = MIN(readlink("/proc/self/exe", uiFilePath, uiFilePathLen), uiFilePathLen - 1);
     if (bytes >= 0)
         uiFilePath[bytes] = '\0';
+#elif defined(__APPLE__)
+    uint32_t uiFilePathLen = sizeof(uiFilePath);
+    if (0 != _NSGetExecutablePath(uiFilePath, &uiFilePathLen)) {
+      printf("Reading filepath of executable via _NSGetExecutablePath failes.\n");
+      return (1);
+    }
+#endif
+
 
     char *lastChr = strrchr(uiFilePath, '/');
     lastChr += 1;
