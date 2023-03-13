@@ -9,6 +9,9 @@ A GTK3-based PDF tag (keyword) management desktop application
 * cp/mv
 * xclip
 
+For mac support:
+* XQuartz [https://www.xquartz.org/]
+
 # Features
 * List of all PDFs contained in the selected working directory
 * Display of PDF Keywords (Tags) and PDF creation date
