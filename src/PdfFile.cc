@@ -265,7 +265,12 @@ bool PdfFile::loadPdfFilesFromDirIncrement(float &loadingCompleteFraction)
             regexFound = testRegex(regexKeywords, lineContent);
             if(regexFound)
             {
+                LOG(LOG_INFO, "Splitting: %s\n", lineContent.c_str()); 
                 Util::splitString(lineContent, currentlyLoadingTags, ", ");
+                for (std::string s: currentlyLoadingTags)
+                {
+                    LOG(LOG_INFO, "%s\n", s.c_str()); 
+                }
             }
             else
             {

@@ -12,13 +12,14 @@ public:
                     const std::string& delims = " ")
     {
         std::size_t current, previous = 0;
-        current = str.find_first_of(delims);
-        while (current != std::string::npos) {
-            cont.push_back(str.substr(previous, current - previous));
+        do {
+            current = str.find(delims, previous);
+            if ((current != std::string::npos) || (previous > 0))
+            {
+                cont.push_back(str.substr(previous, current - previous));
+            }
             previous = current + delims.size();
-            current = str.find_first_of(delims, previous);
-        }
-        cont.push_back(str.substr(previous, current - previous));
+        } while (current != std::string::npos);
     }
 };
 
