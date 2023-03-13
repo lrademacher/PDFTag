@@ -14,7 +14,7 @@ public:
         std::size_t current, previous = 0;
         do {
             current = str.find(delims, previous);
-            if ((current != std::string::npos) || (previous > 0))
+            if (current != previous)
             {
                 cont.push_back(str.substr(previous, current - previous));
             }
