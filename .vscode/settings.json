@@ -51,7 +51,8 @@
         "ctime": "cpp",
         "list": "cpp",
         "iomanip": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "regex": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
