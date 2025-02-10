@@ -1,5 +1,6 @@
 # PDFTag
-A GTK3-based PDF tag (keyword) management desktop application
+A GTK3-based PDF tag (keyword) management desktop application.
+I do no longer use this tool, as i switched to https://github.com/paperless-ngx/paperless-ngx.
 
 ![](res/Screenshot.png)
 
